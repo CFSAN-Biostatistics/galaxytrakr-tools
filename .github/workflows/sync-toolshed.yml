@@ -55,7 +55,6 @@ jobs:
         if: steps.changes.outputs.tool_dirs != ''
         env:
           PLANEMO_SHED_KEY: ${{ secrets.HG_ES_SHED_KEY}}
-          PLANEMO_GALAXYTRAKR_URL: https://toolrepo.galaxytrakr.org
         run: |
           set -euo pipefail
           source .venv/bin/activate
@@ -70,8 +69,6 @@ jobs:
             echo ">>> Preparing to update/create repository for ${TOOL_NAME}..."
             echo "    - Target Directory: ${dir}"
 
-            # shed_update is smarter and can often find the tool without the inner loop,
-            # but we will keep the loop for robustness.
             CANDIDATES=("$dir" "$dir/$TOOL_NAME")
             TARGET_DIR=""
             for candidate in "${CANDIDATES[@]}"; do
@@ -90,9 +87,9 @@ jobs:
             echo ">>> Executing planemo shed_update..."
             echo "---"
 
-            # Use shed_update, which is designed for this and reads .shed.yml
+            # FINAL FIX: Use the full URL directly as the shed_target
             planemo shed_update \
-              --shed_target "galaxytrakr" \
+              --shed_target "https://toolrepo.galaxytrakr.org" \
               --force_repository_creation \
               "$TARGET_DIR"
 
@@ -108,4 +105,3 @@ jobs:
           done
 
           echo "All changed tools processed successfully by the script."
-
