@@ -19,7 +19,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # fetch-depth: 0 is more robust for diffing against a variety of events
           fetch-depth: 0
 
       - name: Install Planemo and dependencies
@@ -38,16 +37,11 @@ jobs:
           set -euo pipefail
           echo "Detecting changed Galaxy tools..."
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # For PRs, compare the PR's head with the base branch's head
             CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep '^tools/' || true)
           else
-            # For pushes, compare the commit before and after the push
             CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '^tools/' || true)
           fi
-          
-          # Extract only top-level tool directories directly under tools/
           echo "$CHANGED" | sed -E 's|^tools/([^/]+).*|tools/\1|' | sort -u > changed_dirs.txt
-          
           if [[ -s changed_dirs.txt ]]; then
             echo "Detected changed tool directories:"
             cat changed_dirs.txt
@@ -57,75 +51,23 @@ jobs:
             echo "tool_dirs=" >> "$GITHUB_OUTPUT"
           fi
 
+      # --- NEW DEBUGGING STEP ---
+      - name: Debug - Show Planemo shed_upload Options
+        run: |
+          echo "--- Asking Planemo for its valid shed_upload options ---"
+          source .venv/bin/activate
+          planemo shed_upload --help
+          echo "--- End of help output ---"
+
       - name: Upload to Tool Shed
-        if: steps.changes.outputs.tool_dirs != ''
+        # This step is temporarily disabled so we can focus on the debug output
+        if: false
         env:
           PLANEMO_SHED_KEY: ${{ secrets.HG_ES_SHED_KEY}}
-          PLANEMO_SHED_TARGET: galaxytrakr
-          # This variable is an important override for custom Tool Sheds
           PLANEMO_GALAXYTRAKR_URL: https://toolrepo.galaxytrakr.org
           HG_USER: ${{ secrets.HG_ES_USER }}
         run: |
-          set -euo pipefail
-          source .venv/bin/activate
+          # The contents of this step are paused for now.
+          echo "This step is disabled for debugging."
 
-          if [[ -z "$PLANEMO_SHED_KEY" ]]; then
-            echo "::error::Secret HG_ES_SHED_KEY is not set. Aborting."
-            exit 1
-          fi
-          if [[ -z "$HG_USER" ]]; then
-            echo "::error::Secret HG_ES_USER is not set. Aborting."
-            exit 1
-          fi
-
-          for dir in ${{ steps.changes.outputs.tool_dirs }}; do
-            TOOL_NAME=$(basename "$dir")
-            echo ">>> Preparing to upload ${TOOL_NAME}..."
-            echo "    - Owner: ${HG_USER}"
-            echo "    - Target Directory: ${dir}"
-
-            CANDIDATES=("$dir" "$dir/$TOOL_NAME")
-            TARGET_DIR=""
-            for candidate in "${CANDIDATES[@]}"; do
-              if find "$candidate" -maxdepth 1 -type f -name "*.xml" \
-                  | xargs grep -E -q "<(tool|data_manager)"; then
-                TARGET_DIR="$candidate"
-                break
-              fi
-            done
-
-            if [[ -z "$TARGET_DIR" ]]; then
-              echo "::warning::Skipping ${TOOL_NAME} — no Galaxy tool or data_manager XML found."
-              continue
-            fi
-
-            echo "   Found Galaxy tool definitions in ${TARGET_DIR}"
-            echo "---"
-            echo ">>> Executing planemo shed_upload with --shed_api_verbose..."
-            echo "---"
-
-            # Execute the Planemo command with verbose API logging
-            # The environment variable PLANEMO_GALAXYTRAKR_URL should override the default URL for the 'galaxytrakr' target
-            planemo shed_upload \
-              --shed_api_verbose \
-              --shed_target "$PLANEMO_SHED_TARGET" \
-              --force_repository_creation \
-              --tar_only \
-              --owner "$HG_USER" \
-              "$TARGET_DIR"
-            
-            # Capture and check the exit code explicitly
-            EXIT_CODE=$?
-            if [ $EXIT_CODE -ne 0 ]; then
-              echo "::error::Planemo shed_upload command failed with exit code $EXIT_CODE."
-              exit $EXIT_CODE
-            fi
-
-            echo "---"
-            echo ">>> Planemo command finished successfully."
-            echo "   [${TOOL_NAME}] upload processing complete."
-            echo "---"
-          done
-
-          echo "All changed tools processed successfully by the script."
 

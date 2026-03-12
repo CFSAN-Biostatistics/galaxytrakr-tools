@@ -107,6 +107,7 @@
                 </when>
             </conditional>
         </section>
+        
         <!-- ORGANISM OPTIONS -->
         <section name="organism_options" title="Organism options">
             <conditional name="organism_conditionnal">
