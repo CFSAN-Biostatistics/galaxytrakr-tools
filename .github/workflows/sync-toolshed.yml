@@ -15,12 +15,12 @@ jobs:
   sync-tools:
     name: Upload Changed Tools to Tool Shed
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          # fetch-depth: 0 is more robust for diffing against a variety of events
+          fetch-depth: 0
 
       - name: Install Planemo and dependencies
         run: |
@@ -44,10 +44,10 @@ jobs:
             # For pushes, compare the commit before and after the push
             CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '^tools/' || true)
           fi
-
+          
           # Extract only top-level tool directories directly under tools/
           echo "$CHANGED" | sed -E 's|^tools/([^/]+).*|tools/\1|' | sort -u > changed_dirs.txt
-
+          
           if [[ -s changed_dirs.txt ]]; then
             echo "Detected changed tool directories:"
             cat changed_dirs.txt
@@ -69,24 +69,23 @@ jobs:
           source .venv/bin/activate
 
           if [[ -z "$PLANEMO_SHED_KEY" ]]; then
-            echo "Error: HG_ES_SHED_KEY not set."
+            echo "::error::Secret HG_ES_SHED_KEY is not set. Aborting."
             exit 1
           fi
-
           if [[ -z "$HG_USER" ]]; then
-            echo "Error: HG_USER not set."
+            echo "::error::Secret HG_ES_USER is not set. Aborting."
             exit 1
           fi
 
           for dir in ${{ steps.changes.outputs.tool_dirs }}; do
             TOOL_NAME=$(basename "$dir")
-            echo ">>> Uploading ${TOOL_NAME} to Tool Shed at ${PLANEMO_OPENTRAKR_URL}..."
-            echo "    Owner: ${HG_USER}"
+            echo ">>> Preparing to upload ${TOOL_NAME} to Tool Shed at ${PLANEMO_OPENTRAKR_URL}..."
+            echo "    - Owner: ${HG_USER}"
+            echo "    - Target Directory: ${dir}"
 
             # Try both the parent and inner directory for the tool
             CANDIDATES=("$dir" "$dir/$TOOL_NAME")
             TARGET_DIR=""
-
             for candidate in "${CANDIDATES[@]}"; do
               if find "$candidate" -maxdepth 1 -type f -name "*.xml" \
                   | xargs grep -E -q "<(tool|data_manager)"; then
@@ -101,14 +100,24 @@ jobs:
             fi
 
             echo "   Found Galaxy tool definitions in ${TARGET_DIR}"
+            echo "---"
+            echo ">>> Executing planemo shed_upload with --verbose..."
+            echo "---"
+
+            # Execute the Planemo command with verbose logging and explicit error checking
             planemo shed_upload \
+              --verbose \
               --shed_target "$PLANEMO_SHED_TARGET" \
               --force_repository_creation \
               --tar_only \
               --owner "$HG_USER" \
-              "$TARGET_DIR"
+              "$TARGET_DIR" || { echo "::error::Planemo shed_upload command failed with an error."; exit 1; }
 
-            echo "   [${TOOL_NAME}] upload complete."
+            echo "---"
+            echo ">>> Planemo command finished."
+            echo "   [${TOOL_NAME}] upload processing complete."
+            echo "---"
           done
 
-          echo "All changed tools uploaded successfully via Planemo."
+          echo "All changed tools processed successfully by the script."
+
