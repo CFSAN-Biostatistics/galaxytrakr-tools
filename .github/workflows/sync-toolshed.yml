@@ -54,20 +54,20 @@ jobs:
       - name: Upload to Tool Shed
         if: steps.changes.outputs.tool_dirs != ''
         env:
-          PLANEMO_SHED_KEY: ${{ secrets.TOOL_SHED_KEY }}
-          PLANEMO_SHED_TARGET: opentrakr
-          PLANEMO_OPENTRAKR_URL: https://opentrakr.org
-          HG_USER: ${{ secrets.HG_USER }}
+          PLANEMO_SHED_KEY: ${{ secrets.HG_ES_SHED_KEY}}
+          PLANEMO_SHED_TARGET: galaxytrakr
+          PLANEMO_OPENTRAKR_URL: https://toolrepo.galaxytrakr.org
+          HG_USER: ${{ secrets.HG_ES_USER }}
         run: |
           set -euo pipefail
           source .venv/bin/activate
 
           if [[ -z "$PLANEMO_SHED_KEY" ]]; then
-            echo "Error: TOOL_SHED_KEY not set."
+            echo "Error: HG_ES_SHED_KEY not set."
             exit 1
           fi
 
-          if [[ -z "$HG_USER" ]]; then
+          if [[ -z "$HG_ES_USER" ]]; then
             echo "Error: HG_USER not set."
             exit 1
           fi
@@ -75,7 +75,7 @@ jobs:
           for dir in ${{ steps.changes.outputs.tool_dirs }}; do
             TOOL_NAME=$(basename "$dir")
             echo ">>> Uploading ${TOOL_NAME} to Tool Shed at ${PLANEMO_OPENTRAKR_URL}..."
-            echo "    Owner: ${HG_USER}"
+            echo "    Owner: ${HG_ES_USER}"
 
             # Try both the parent and inner directory for the tool
             CANDIDATES=("$dir" "$dir/$TOOL_NAME")
@@ -99,7 +99,7 @@ jobs:
               --shed_target "$PLANEMO_SHED_TARGET" \
               --force_repository_creation \
               --tar_only \
-              --owner "$HG_USER" \
+              --owner "$HG_ES_USER" \
               "$TARGET_DIR"
 
             echo "   [${TOOL_NAME}] upload complete."
