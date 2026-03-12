@@ -9,4 +9,5 @@ long_description: |-
   samples. It can also be applied to isolate and single-cell genomes.
 homepage_url: https://github.com/Ecogenomics/GTDBTk
 type: unrestricted
-categories: []
+categories:
+  - "Tools"

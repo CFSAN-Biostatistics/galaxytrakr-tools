@@ -6,4 +6,5 @@ long_description: |-
   a new data table entry.
 homepage_url: ''
 type: unrestricted
-categories: []
+categories:
+  - "Tools"

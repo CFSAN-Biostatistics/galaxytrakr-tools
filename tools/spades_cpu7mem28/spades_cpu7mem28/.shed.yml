@@ -1,0 +1,8 @@
+name: spades_cpu7mem28
+owner: estrain
+description: SPAdes
+long_description: "SPAdes is a genome assembly tool designed for single-cell and multi-cell bacterial datasets. It uses various assembly algorithms to produce high-quality contigs from sequencing reads."
+homepage_url: ''
+type: unrestricted
+categories:
+  - "Tools"

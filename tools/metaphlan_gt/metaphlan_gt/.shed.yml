@@ -5,4 +5,5 @@ long_description: |-
   MetaPhlAn
 homepage_url: ''
 type: unrestricted
-categories: []
+categories:
+  - "Tools"

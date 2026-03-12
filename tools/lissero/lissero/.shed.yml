@@ -5,4 +5,5 @@ long_description: |-
   Serogroup predictions from genome assemblies for Listeria monocytogenes
 homepage_url: https://github.com/MDU-PHL/lissero
 type: unrestricted
-categories: []
+categories:
+  - "Tools"

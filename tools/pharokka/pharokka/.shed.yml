@@ -1,0 +1,8 @@
+name: pharokka
+owner: estrain
+description: pharokka
+long_description: "pharokka is a tool for annotating phage genomes. It uses Prodigal for gene prediction and a custom database for functional annotation. The tool is designed to be fast and accurate, providing comprehensive annotations for phage genomes."
+homepage_url: ''
+type: unrestricted
+categories:
+  - "Tools"

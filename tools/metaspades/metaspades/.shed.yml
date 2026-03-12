@@ -7,4 +7,5 @@ long_description: |-
   ignoring some strain-specific features corresponding to rare strains.
 homepage_url: ''
 type: unrestricted
-categories: []
+categories:
+  - "Tools"
