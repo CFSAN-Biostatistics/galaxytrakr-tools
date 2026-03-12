@@ -49,16 +49,6 @@ MANIFEST
 *.singularity
 docker-compose.override.yml
 
-###############################################
-# Galaxy Tool and Data Manager helper files
-###############################################
-test-data/
-tool-data/
-*.loc
-*.test
-*.backup
-*.bak
-
 # Ignore large compressed reference or test files
 *.tar.gz
 *.tgz
