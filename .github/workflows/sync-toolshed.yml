@@ -51,23 +51,61 @@ jobs:
             echo "tool_dirs=" >> "$GITHUB_OUTPUT"
           fi
 
-      # --- NEW DEBUGGING STEP ---
-      - name: Debug - Show Planemo shed_upload Options
-        run: |
-          echo "--- Asking Planemo for its valid shed_upload options ---"
-          source .venv/bin/activate
-          planemo shed_upload --help
-          echo "--- End of help output ---"
-
-      - name: Upload to Tool Shed
-        # This step is temporarily disabled so we can focus on the debug output
-        if: false
+      - name: Update Tool Shed
+        if: steps.changes.outputs.tool_dirs != ''
         env:
           PLANEMO_SHED_KEY: ${{ secrets.HG_ES_SHED_KEY}}
           PLANEMO_GALAXYTRAKR_URL: https://toolrepo.galaxytrakr.org
-          HG_USER: ${{ secrets.HG_ES_USER }}
         run: |
-          # The contents of this step are paused for now.
-          echo "This step is disabled for debugging."
+          set -euo pipefail
+          source .venv/bin/activate
 
+          if [[ -z "$PLANEMO_SHED_KEY" ]]; then
+            echo "::error::Secret HG_ES_SHED_KEY is not set. Aborting."
+            exit 1
+          fi
+
+          for dir in ${{ steps.changes.outputs.tool_dirs }}; do
+            TOOL_NAME=$(basename "$dir")
+            echo ">>> Preparing to update/create repository for ${TOOL_NAME}..."
+            echo "    - Target Directory: ${dir}"
+
+            # shed_update is smarter and can often find the tool without the inner loop,
+            # but we will keep the loop for robustness.
+            CANDIDATES=("$dir" "$dir/$TOOL_NAME")
+            TARGET_DIR=""
+            for candidate in "${CANDIDATES[@]}"; do
+              if find "$candidate" -maxdepth 1 -type f -name "*.xml" \
+                  | xargs grep -E -q "<(tool|data_manager)"; then
+                TARGET_DIR="$candidate"
+                break
+              fi
+            done
+            if [[ -z "$TARGET_DIR" ]]; then
+              echo "::warning::Skipping ${TOOL_NAME} — no Galaxy tool or data_manager XML found."
+              continue
+            fi
+            echo "   Found Galaxy tool definitions in ${TARGET_DIR}"
+            echo "---"
+            echo ">>> Executing planemo shed_update..."
+            echo "---"
+
+            # Use shed_update, which is designed for this and reads .shed.yml
+            planemo shed_update \
+              --shed_target "galaxytrakr" \
+              --force_repository_creation \
+              "$TARGET_DIR"
+
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "::error::Planemo shed_update command failed with exit code $EXIT_CODE."
+              exit $EXIT_CODE
+            fi
+            
+            echo "---"
+            echo ">>> Planemo command finished successfully for ${TOOL_NAME}."
+            echo "---"
+          done
+
+          echo "All changed tools processed successfully by the script."
 
