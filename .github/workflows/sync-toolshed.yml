@@ -37,7 +37,13 @@ jobs:
         run: |
           set -euo pipefail
           echo "Detecting changed Galaxy tools..."
-          CHANGED=$(git diff --name-only HEAD^ HEAD | grep '^tools/' || true)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # For PRs, compare the PR's head with the base branch's head
+            CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep '^tools/' || true)
+          else
+            # For pushes, compare the commit before and after the push
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '^tools/' || true)
+          fi
 
           # Extract only top-level tool directories directly under tools/
           echo "$CHANGED" | sed -E 's|^tools/([^/]+).*|tools/\1|' | sort -u > changed_dirs.txt
