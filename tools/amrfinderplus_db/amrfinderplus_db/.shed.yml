@@ -1,7 +1,8 @@
 name: amrfinderplus_db
 owner: estrain
 description: AMRFinderPlus
-long_description: ""
-homepage_url: ''
+long_description: "AMRFinder Plus is a tool for identifying antimicrobial resistance genes and point mutations in bacterial genomes. This data manager provides a way to fetch, build, and install the AMRFinderPlus database for use with the AMRFinderPlus Galaxy tool. It ensures that the database is available for analysis workflows."
+homepage_url: 'https://github.com/CFSAN-Biostatistics/galaxytrakr-tools'
 type: unrestricted
-categories: []
+categories:
+
