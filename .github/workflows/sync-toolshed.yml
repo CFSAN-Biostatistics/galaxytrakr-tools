@@ -62,7 +62,8 @@ jobs:
         env:
           PLANEMO_SHED_KEY: ${{ secrets.HG_ES_SHED_KEY}}
           PLANEMO_SHED_TARGET: galaxytrakr
-          PLANEMO_OPENTRAKR_URL: https://toolrepo.galaxytrakr.org
+          # This variable is an important override for custom Tool Sheds
+          PLANEMO_GALAXYTRAKR_URL: https://toolrepo.galaxytrakr.org
           HG_USER: ${{ secrets.HG_ES_USER }}
         run: |
           set -euo pipefail
@@ -79,11 +80,10 @@ jobs:
 
           for dir in ${{ steps.changes.outputs.tool_dirs }}; do
             TOOL_NAME=$(basename "$dir")
-            echo ">>> Preparing to upload ${TOOL_NAME} to Tool Shed at ${PLANEMO_OPENTRAKR_URL}..."
+            echo ">>> Preparing to upload ${TOOL_NAME}..."
             echo "    - Owner: ${HG_USER}"
             echo "    - Target Directory: ${dir}"
 
-            # Try both the parent and inner directory for the tool
             CANDIDATES=("$dir" "$dir/$TOOL_NAME")
             TARGET_DIR=""
             for candidate in "${CANDIDATES[@]}"; do
@@ -95,27 +95,37 @@ jobs:
             done
 
             if [[ -z "$TARGET_DIR" ]]; then
-              echo "   Skipping ${TOOL_NAME} — no Galaxy tool or data_manager XML found."
+              echo "::warning::Skipping ${TOOL_NAME} — no Galaxy tool or data_manager XML found."
               continue
             fi
 
             echo "   Found Galaxy tool definitions in ${TARGET_DIR}"
             echo "---"
-            echo ">>> Executing planemo with global --verbose..."
+            echo ">>> Executing planemo shed_upload with --shed_api_verbose..."
             echo "---"
 
-            # CORRECTED COMMAND: --verbose is now BEFORE shed_upload
-            planemo --verbose shed_upload \
+            # Execute the Planemo command with verbose API logging
+            # The environment variable PLANEMO_GALAXYTRAKR_URL should override the default URL for the 'galaxytrakr' target
+            planemo shed_upload \
+              --shed_api_verbose \
               --shed_target "$PLANEMO_SHED_TARGET" \
               --force_repository_creation \
               --tar_only \
               --owner "$HG_USER" \
-              "$TARGET_DIR" || { echo "::error::Planemo shed_upload command failed with an error."; exit 1; }
+              "$TARGET_DIR"
+            
+            # Capture and check the exit code explicitly
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo "::error::Planemo shed_upload command failed with exit code $EXIT_CODE."
+              exit $EXIT_CODE
+            fi
 
             echo "---"
-            echo ">>> Planemo command finished."
+            echo ">>> Planemo command finished successfully."
             echo "   [${TOOL_NAME}] upload processing complete."
             echo "---"
           done
 
           echo "All changed tools processed successfully by the script."
+
