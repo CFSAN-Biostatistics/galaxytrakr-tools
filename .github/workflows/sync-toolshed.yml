@@ -73,15 +73,15 @@ jobs:
             exit 1
           fi
 
-          if [[ -z "$HG_ES_USER" ]]; then
-            echo "Error: HG_USER not set."
+          if [[ -z "$HG_USER" ]]; then
+            echo "Error: HG_ES_USER not set."
             exit 1
           fi
 
           for dir in ${{ steps.changes.outputs.tool_dirs }}; do
             TOOL_NAME=$(basename "$dir")
             echo ">>> Uploading ${TOOL_NAME} to Tool Shed at ${PLANEMO_OPENTRAKR_URL}..."
-            echo "    Owner: ${HG_ES_USER}"
+            echo "    Owner: ${HG_USER}"
 
             # Try both the parent and inner directory for the tool
             CANDIDATES=("$dir" "$dir/$TOOL_NAME")
@@ -105,7 +105,7 @@ jobs:
               --shed_target "$PLANEMO_SHED_TARGET" \
               --force_repository_creation \
               --tar_only \
-              --owner "$HG_ES_USER" \
+              --owner "$HG_USER" \
               "$TARGET_DIR"
 
             echo "   [${TOOL_NAME}] upload complete."
