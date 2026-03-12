@@ -84,12 +84,13 @@ jobs:
             fi
             echo "   Found Galaxy tool definitions in ${TARGET_DIR}"
             echo "---"
-            echo ">>> Executing planemo shed_update..."
+            echo ">>> Executing planemo shed_update with explicit API key..."
             echo "---"
 
-            # FINAL FIX: Use the full URL directly as the shed_target
+            # FINAL FIX: Explicitly pass the API key with --shed_key
             planemo shed_update \
               --shed_target "https://toolrepo.galaxytrakr.org" \
+              --shed_key "$PLANEMO_SHED_KEY" \
               --force_repository_creation \
               "$TARGET_DIR"
 
