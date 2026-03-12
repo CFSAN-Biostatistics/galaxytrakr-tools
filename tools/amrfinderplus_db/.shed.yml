@@ -1,8 +1,15 @@
-name: amrfinderplus_db
-owner: estrain
-description: AMRFinderPlus
-long_description: ""
-homepage_url: ''
+# tools/amrfinderplus_db/.shed.yml
+
+owner: "estrain"
+
+name: "amrfinderplus_db"
+
+description: "A data manager for the AMRFinderPlus database."
+
+long_description: "This tool provides a data manager for fetching, building, and installing the AMRFinderPlus database for use with the AMRFinderPlus Galaxy tool. It ensures that the database is available for analysis workflows."
+
+homepage_url: "https://github.com/CFSAN-Biostatistics/galaxytrakr-tools"
+
 type: unrestricted
 categories:
   - "Tools"
