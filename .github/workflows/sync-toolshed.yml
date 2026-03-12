@@ -74,7 +74,7 @@ jobs:
           fi
 
           if [[ -z "$HG_USER" ]]; then
-            echo "Error: HG_ES_USER not set."
+            echo "Error: HG_USER not set."
             exit 1
           fi
 
