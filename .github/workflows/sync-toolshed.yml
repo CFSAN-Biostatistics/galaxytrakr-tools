@@ -101,12 +101,11 @@ jobs:
 
             echo "   Found Galaxy tool definitions in ${TARGET_DIR}"
             echo "---"
-            echo ">>> Executing planemo shed_upload with --verbose..."
+            echo ">>> Executing planemo with global --verbose..."
             echo "---"
 
-            # Execute the Planemo command with verbose logging and explicit error checking
-            planemo shed_upload \
-              --verbose \
+            # CORRECTED COMMAND: --verbose is now BEFORE shed_upload
+            planemo --verbose shed_upload \
               --shed_target "$PLANEMO_SHED_TARGET" \
               --force_repository_creation \
               --tar_only \
@@ -120,4 +119,3 @@ jobs:
           done
 
           echo "All changed tools processed successfully by the script."
-
