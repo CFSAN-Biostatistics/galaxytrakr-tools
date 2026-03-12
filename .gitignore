@@ -55,7 +55,6 @@ docker-compose.override.yml
 test-data/
 tool-data/
 *.loc
-*.sample
 *.test
 *.backup
 *.bak
