@@ -2,7 +2,7 @@
 
 owner: "estrain"
 
-name: "amrfinderplus_db"
+name: "data_manager_amrfinderplus"
 
 description: "A data manager for the AMRFinderPlus database."
 
