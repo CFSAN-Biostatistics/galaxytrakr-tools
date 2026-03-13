@@ -5,4 +5,5 @@ long_description: "AMRFinder Plus is a tool for identifying antimicrobial resist
 homepage_url: 'https://github.com/CFSAN-Biostatistics/galaxytrakr-tools'
 type: unrestricted
 categories:
+  - Tools
 
