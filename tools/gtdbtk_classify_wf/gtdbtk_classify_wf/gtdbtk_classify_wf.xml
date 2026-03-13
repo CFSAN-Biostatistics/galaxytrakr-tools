@@ -2,7 +2,6 @@
     <description>by placement in GTDB reference tree</description>
         <requirements>
             <requirement type="package" version="2.5.2">gtdbtk</requirement>
-            
         </requirements>
     <command detect_errors="exit_code"><![CDATA[
 #import re

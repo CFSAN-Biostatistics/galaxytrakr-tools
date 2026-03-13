@@ -2,7 +2,6 @@
     <description>de novo assembler for single molecule sequencing reads</description>
     <macros>
         <import>macros.xml</import>
-        
     </macros>
     <expand macro="edam_ontology"/>
     <expand macro="xrefs"/>
