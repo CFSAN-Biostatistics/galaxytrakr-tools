@@ -1,6 +1,7 @@
 <tool id="lissero" name="lissero" version="1.0.1+galaxy2" python_template_version="3.5" profile="21.05">
 <requirements>
     <requirement type="package" version="0.4.9">lissero</requirement>
+    
 </requirements>
     <command detect_errors="exit_code"><![CDATA[
         lissero 
