@@ -3,6 +3,7 @@
 
     <requirements>
             <requirement type="package" version="4.2.0">spades</requirement>
+            
     </requirements>
 
     <stdio>
