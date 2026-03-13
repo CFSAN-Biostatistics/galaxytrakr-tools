@@ -1,0 +1,200 @@
+<tool id="microrunqc" name="microrunqc" version="1.0.6">
+
+  <requirements>
+    <requirement type="package" version="2.4.0">skesa</requirement>
+    <requirement type="package" version="2.23.0">mlst</requirement>
+    <requirement type="package" version="0.7.17">bwa</requirement>
+    <requirement type="package" version="1.0.1">fastq-scan</requirement>
+  </requirements>
+
+  <command detect_errors="exit_code"><![CDATA[
+
+    skesa
+
+    #set fqscan = "text"
+    #if $jobtype.select == "fastq_fr"
+      #set outname = $jobtype.fastq1.name
+      #set bwalist = str($jobtype.fastq1) + " " + str($jobtype.fastq2)
+      --fastq $jobtype.fastq1,$jobtype.fastq2
+      #if $jobtype.fastq1.is_of_type("fastq.gz")
+        #set fqscan = "gz"
+      #else if $jobtype.fastq1.is_of_type("fastqsanger.gz")
+        #set fqscan = "gz"
+      #end if
+    #else if $jobtype.select == "fastq_pair"
+      #set outname = $jobtype.coll.name
+      #set bwalist = str($jobtype.coll.forward) + " " + str($jobtype.coll.reverse)
+      --fastq $jobtype.coll.forward,$jobtype.coll.reverse
+      #if $jobtype.coll.forward.is_of_type("fastq.gz")
+        #set fqscan = "gz"
+      #else if $jobtype.coll.forward.is_of_type("fastqsanger.gz")
+        #set fqscan = "gz"
+      #end if
+    #end if
+
+    #set num_cores = 1
+
+    #if $options.select =="basic"
+      --cores $num_cores 
+      --memory 8 
+    #else if $options.select=="advanced"
+      #if $options.cores
+        #set num_cores = $options.cores
+        --cores $options.cores
+      #end if
+      #if $options.memory
+        --memory $options.memory
+      #end if
+      #if $options.hash_count
+        --hash_count
+      #end if
+      #if $options.estimated_kmers
+        --estimated_kmers $options.estimated.kmers
+      #end if
+      #if $options.skip
+       --skip_bloom_filter
+      #end if
+      #if $options.kmer
+       --kmer $options.kmer 
+      #end if
+      #if $options.min_count
+       --min_count $options.min_count 
+      #end if
+      #if $options.max_kmer_count
+       --max_kmer_count $options.max_kmer_count 
+      #end if
+      #if $options.vector_percent
+       --vector_percent $options.vector_percent 
+      #end if
+      #if $options.insert_size
+       --insert_size $options.insert.size 
+      #end if
+      #if $options.steps
+       --steps $options.steps 
+      #end if
+      #if $options.fraction
+       --fraction $options.fraction 
+      #end if
+      #if $options.max_snp_len
+       --max_snp_len $options.max_snp_len 
+      #end if
+      #if $options.min_contig
+       --min_contig $options.min_contig 
+      #end if
+      #if $options.allow_snps
+       --allow_snps 
+      #end if
+    #end if
+
+    > ${outname}.fasta; 
+
+    bwa index ${outname}.fasta;
+    bwa mem -t $num_cores  ${outname}.fasta ${bwalist} | python $__tool_directory__/median_size.py > insert.median;
+ 
+    mlst --nopath --threads $num_cores --datadir $mlst_databases.fields.path/pubmlst --blastdb $mlst_databases.fields.path/blast/mlst.fa  
+    #if $options.select=="advanced"
+      #if $options.minid
+        --minid $options.minid
+      #end if
+      #if $options.mincov
+        --mincov $options.mincov
+      #end if
+      #if $options.minscore
+        --minscore $options.minscore
+      #end if
+    #end if
+    ${outname}.fasta > ${outname}.mlst_raw.tsv;
+    
+    python $__tool_directory__/mlstAddFields.py ${outname}.mlst_raw.tsv $mlst_databases.fields.path/pubmlst > ${outname}.mlst.tsv;
+
+    python $__tool_directory__/run_fastq_scan.py --fastq ${bwalist} --out fq_out.tab --type ${fqscan};
+
+    python $__tool_directory__/sum_mlst.py --fasta ${outname}.fasta --mlst ${outname}.mlst.tsv --med insert.median --fqscan fq_out.tab --out sum_qc.txt 
+
+  ]]></command>
+    <inputs>
+      <conditional name="jobtype">
+        <param name="select" type="select" label="Select Input">
+          <option value="fastq_fr">Forward and Reverse FASTQ</option>
+          <option value="fastq_pair">Paired FASTQ Collection</option>
+        </param>
+        <when value="fastq_fr">
+          <param name="fastq1" type="data" format="fastq,fastqsanger,fastq.gz,fastqsanger.gz" label="Forward FASTQ" />
+          <param name="fastq2" type="data" format="fastq,fastqsanger,fastq.gz,fastqsanger.gz" label="Reverse FASTQ" />
+        </when>
+        <when value="fastq_pair">
+          <param name="coll" label="Paired FASTQ" type="data_collection" format="fastq,fastqsanger,fastq.gz,fastqsanger.gz" collection_type="paired" />
+        </when>
+      </conditional>
+  
+      <conditional name="options">
+        <param name="select" type="select" label="Options Type">
+          <option value="basic">Basic</option>
+          <option value="advanced">Advanced</option>
+        </param>
+        <when value="advanced">
+          <param name="cores" optional="true" type="integer" label="Number of cores to use (Default=16)" value=""/>
+          <param name="memory" optional="true" type="integer" label="Memory available (Default=32GB)" value=""/>
+          <param name="hash_count" optional="true" type="boolean" label="hash counter"/>
+          <param name="estimated_kmers" optional="true" type="integer" label="Estimated number of unique kmers for bloom filter (Default=100)" value=""/>
+          <param name="skip" optional="true" type="boolean" label="skip bloom filter, use estimate kmers as the hash"/>
+          <param name="kmer" optional="true" type="integer" label="Minimal kmer length for assembly (Default=21)" value=""/>
+          <param name="min_count" optional="true" type="integer" label="Minimal count for kmers retained for comparing alternate choices" value=""/>
+          <param name="max_kmer_count" optional="true" type="integer" label="Minimum acceptable average count for estimating the maximal kmer length in reads" value=""/>
+          <param name="vector_percent" optional="true" type="float" label="Count for vectors as a fraction of the read number (0-1,1=disabled)"  value="">
+            <validator type="in_range" message="Must be float(0,1)." min="0" max="1"/>
+          </param>
+          <param name="insert_size" optional="true" type="integer" label="Expected insert size for paired reads" value=""/>
+          <param name="steps" optional="true" type="integer" label="Number of assembly iterations from minimal to maximal kmer length in reads (Default=11)" value=""/>
+          <param name="fraction" optional="true" type="float" label="Maximum noise to signal ratio acceptable for extension (Default=0.1)" value="">
+            <validator type="in_range" message="Must be float(0,1)." min="0" max="1"/>
+          </param>
+          <param name="max_snp_len" optional="true" type="integer" label="Maximal snp length (Default=150)" value=""/>
+          <param name="min_contig" optional="true" type="integer" label="Minimal contig length reported in output (Default=200)" value=""/>
+          <param name="allow_snps" optional="true" type="boolean" label="Turn SNP discovery (Default=false)"/>
+          <param name="mincov" type="integer" label="Minimum DNA %coverage" value="10" help="Minimum DNA %coverage to report partial allele at all (default 10, must be between 0-100)" optional="true" />
+          <param name="minid" type="integer" label="Minimum DNA %identity" value="95" min="0" max="100" help="Minimum DNA %identity of full allelle to consider 'similar' (default 95, must be between 0-100)" optional="true" />
+          <param name="minscore" type="integer" label="Minimum score to match scheme" value="50" min="0" max="100" help="Minumum score out of 100 to match a scheme" optional="true" />
+        </when>
+        <when value="basic"/>
+      </conditional>
+
+      <param name="mlst_databases" label="Select a mlst database" type="select">
+          <options from_data_table="mlst">
+              <validator message="No database is available" type="no_options" />
+          </options>
+      </param>
+
+    </inputs>
+    <outputs>
+      <data format="fasta" name="results.skesa.fasta" label="${tool.name} on ${on_string}: Contigs" from_work_dir="*.fasta"/>
+      <data format="tabular" name="results.mlst.tsv" label="${tool.name} on ${on_string}: MLST" from_work_dir="*.mlst.tsv"/>
+      <data format="tabular" name="qc_results.tsv" label="${tool.name} on ${on_string}: MLST" from_work_dir="*.txt"/>
+    </outputs>
+
+    <help><![CDATA[
+
+    ]]></help>
+     <citations>
+        <citation type="bibtex">
+        @misc{pope_dashnow_zobel_holt_raven_schultz_inouye_tomita_2014,
+        title={skesa: eSKESA is a de-novo sequence read assembler for cultured single isolate genomes
+    based on DeBruijn graphs. It uses conservative heuristics and is designed to
+    create breaks at repeat regions in the genome. This leads to excellent sequence
+    quality but not necessarily a large N50 statistic. It is a multi-threaded
+    application that scales well with the number of processors. For different runs
+    with the same inputs, including the order of reads, the order and orientation
+    of contigs in the output is deterministic. },
+        url={https://github.com/ncbi/ngs-tools/tree/master/tools/skesa/},
+        author={National Center for Biotechnology Information },
+       }</citation>
+
+       <citation type="bibtex">
+       @UNPUBLISHED{Seemann2016,
+       author = "Seemann T",
+       title = "MLST: Scan contig files against PubMLST typing schemes",
+       year = "2016",
+       url = {https://github.com/tseemann/mlst}
+      }</citation>
+    </citations>
+</tool>

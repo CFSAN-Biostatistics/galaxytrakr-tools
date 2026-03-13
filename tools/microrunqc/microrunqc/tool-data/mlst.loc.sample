@@ -1,0 +1,6 @@
+# this is a tab separated file describing the location of mlst databases
+#
+# the columns are:
+# value name path
+#
+# for example

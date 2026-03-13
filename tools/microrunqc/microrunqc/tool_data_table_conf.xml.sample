@@ -1,0 +1,7 @@
+<tables>
+    <!-- Locations of amrfinderplus database in the required format -->
+    <table name="mlst" comment_char="#" allow_duplicate_entries="False">
+        <columns>value, name, path</columns>
+        <file path="tool-data/mlst.loc" />
+    </table>
+</tables>

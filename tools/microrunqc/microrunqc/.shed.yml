@@ -1,0 +1,10 @@
+name: microrunqc
+owner: estrain
+description: skesa And MLST
+long_description: |-
+  Run skesa and MLST to generate assembly and MLST profile prediction. 
+  Generate Metrics and Summary Statistics for paired-end Illumina Bacterial Whole-Genome Sequencing (WGS) fastq data. 
+homepage_url: 'https://github.com/estrain/MicroRunQC'
+type: unrestricted
+categories:
+  - "Tools"
