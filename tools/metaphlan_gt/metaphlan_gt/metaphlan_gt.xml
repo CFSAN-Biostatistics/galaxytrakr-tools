@@ -2,6 +2,7 @@
     <description>to profile the composition of microbial communities</description>
     <macros>
         <import>macros.xml</import>
+        
         <xml name="tax_lev">
             <conditional name="tax_lev">
                 <param argument="--tax_lev" type="select" label="Taxonomic level for the relative abundance output">
