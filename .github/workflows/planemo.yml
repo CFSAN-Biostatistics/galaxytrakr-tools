@@ -71,8 +71,11 @@ jobs:
       - name: Build and Push Containers
         if: steps.changed.outputs.skip_build == 'false'
         env:
+          # Secret for docker login (already present)
           QUAY_USER: ${{ secrets.QUAY_USER }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          # New secret for the Quay API call
+          QUAY_OAUTH_TOKEN: ${{ secrets.QUAY_OAUTH_TOKEN }}
         run: |
           set -e
           echo "Building changed tool containers..."
@@ -81,18 +84,30 @@ jobs:
             echo "------------------------------------------"
             echo "Building Biocontainer-style image for $xml"
             echo "------------------------------------------"
-
+            
             planemo mull \
               --mulled_namespace galaxytrakr \
               "$xml" || { echo "Build failed for $xml"; continue; }
-
+            
+            # Find the most recently built image
             IMAGE=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "quay.io/galaxytrakr/" | head -n 1 || true)
             if [ -z "$IMAGE" ]; then
               echo "No built image found for $xml"
               continue
             fi
-
+            
             echo "Pushing image: $IMAGE"
-            docker push "$IMAGE" || echo "Push failed for $IMAGE"
-          done
+            docker push "$IMAGE" || { echo "Push failed for $IMAGE"; continue; }
 
+            echo "Making repository for $IMAGE public..."
+            
+            # Extract the repository path (e.g., galaxytrakr/mulled-v2-...) from the full image name
+            REPO_PATH=$(echo "$IMAGE" | sed -e 's|quay.io/||' -e 's|:.*$||')
+            
+            # Use the dedicated OAuth token to make the repository public
+            curl -f -X POST "https://quay.io/api/v1/repository/${REPO_PATH}/changevisibility" \
+                 -H "Authorization: Bearer ${QUAY_OAUTH_TOKEN}" \
+                 -H "Content-Type: application/json" \
+                 -d '{"visibility": "public"}'
+
+          done
