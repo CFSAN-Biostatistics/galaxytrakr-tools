@@ -1,0 +1,17 @@
+name: aws_sra
+owner: galaxytrakr
+description: Fetch data, list objects, or convert to FASTQ from NCBI SRA on AWS.
+long_description: |
+  This tool provides a versatile interface to the NCBI Sequence Read Archive (SRA) open data buckets on Amazon S3.
+
+  It operates in three modes:
+  1. List objects within a bucket, with optional recursive searching.
+  2. Download raw files directly by specifying their S3 key.
+  3. Fetch an SRA run accession, convert it to compressed FASTQ using fasterq-dump, and output paired or single-end datasets correctly labeled for building dataset collections.
+
+  It supports multiple SRA buckets, including sra-pub-run-odp, source buckets, and metadata buckets. All access is performed anonymously without requiring AWS credentials.
+homepage_url: https://github.com/CFSAN-Biostatistics/galaxytrakr-tools/tree/main/tools/aws_sra
+remote_repository_url: https://github.com/CFSAN-Biostatistics/galaxytrakr-tools
+type: unrestricted
+categories:
+  - "Tools"
