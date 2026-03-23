@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.8" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.9" profile="23.0">
     <description>Fetch SRA data files from NCBI's public AWS S3 buckets</description>
 
     <requirements>
@@ -49,14 +49,11 @@
         #elif $action.mode == 'fastq_dump'
             #set $acc = $action.accession.strip()
 
-            ## 1. Download the file from S3 
+            ## 1. Download the file from S3 (CORRECTED: single line command)
             mkdir -p sra_cache &&
-            aws s3 cp \
-                --no-sign-request \
-                '${s3_base}/sra/${acc}/${acc}' \
-                ./sra_cache/${acc} &&
+            aws s3 cp --no-sign-request '${s3_base}/sra/${acc}/${acc}' ./sra_cache/${acc} &&
 
-            ## 2. Convert with fasterq-dump (CORRECTED: uses extensionless file)
+            ## 2. Convert with fasterq-dump
             mkdir -p fastq_out &&
             fasterq-dump \
                 ./sra_cache/${acc} \
@@ -76,7 +73,6 @@
             #else
                 cp ./fastq_out/${acc}.fastq.gz '$output_r1'
             #end if
-        #end if
     ]]></command>
 
     <inputs>
