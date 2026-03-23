@@ -7,7 +7,6 @@
         <requirement type="package" version="2.8" channel="conda-forge">pigz</requirement>
     </requirements>
 
-
     <version_command>aws --version</version_command>
 
     <command detect_errors="exit_code"><![CDATA[
