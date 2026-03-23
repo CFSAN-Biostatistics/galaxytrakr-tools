@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.13" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.14" profile="23.0">
     <description>Fetches SRA runs from AWS and converts them to FASTQ</description>
 
     <requirements>
