@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.19" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.20" profile="23.0">
     <description>Fetches SRA runs from AWS and converts them to FASTQ</description>
     <requirements>
         <requirement type="package" version="2.34.8">awscli</requirement>
@@ -33,17 +33,15 @@
                     aws s3 cp --no-sign-request 's3://sra-pub-run-odp/sra/${acc}/${acc}' ./sra_cache_${acc}/ &&
                     fasterq-dump --outdir ./fastq_out_${acc} --temp . --threads \${GALAXY_SLOTS:-4} --split-files ./sra_cache_${acc}/${acc} &&
                     pigz -p \${GALAXY_SLOTS:-4} ./fastq_out_${acc}/*.fastq &&
-                    (
-                        #if str($layout) == 'paired'
-                            mv ./fastq_out_${acc}/${acc}_1.fastq.gz '$output_r1_batch.files_path/${acc}_1.fastq.gz' &&
-                            mv ./fastq_out_${acc}/${acc}_2.fastq.gz '$output_r2_batch.files_path/${acc}_2.fastq.gz'
-                        #else
-                            mv ./fastq_out_${acc}/*.fastq.gz '$output_r1_batch.files_path/${acc}.fastq.gz'
-                        #end if
-                    ) &&
+                    #if str($layout) == 'paired'
+                        mv ./fastq_out_${acc}/${acc}_1.fastq.gz '$output_r1_batch.files_path/${acc}_1.fastq.gz' &&
+                        mv ./fastq_out_${acc}/${acc}_2.fastq.gz '$output_r2_batch.files_path/${acc}_2.fastq.gz'
+                    #else
+                        mv ./fastq_out_${acc}/${acc}.fastq.gz '$output_r1_batch.files_path/${acc}.fastq.gz'
+                    #end if &&
                     rm -rf sra_cache_${acc} fastq_out_${acc}
                 #end if
-            #end for
+        #   end for
         #end if
     ]]></command>
 
