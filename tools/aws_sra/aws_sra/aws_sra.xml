@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.14" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.15" profile="23.0">
     <description>Fetches SRA runs from AWS and converts them to FASTQ</description>
 
     <requirements>
@@ -69,10 +69,10 @@
     <outputs>
         <!-- These collections will gather all the files produced by the loop -->
         <collection name="output_r1" type="list" label="${run_type.accession or 'FASTQ Reads (R1)'}">
-            <discover_datasets pattern="(?P<designation>.+)_1\.fastq\.gz" format="fastqsanger.gz" />
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)_1\.fastq\.gz" format="fastqsanger.gz" />
         </collection>
         <collection name="output_r2" type="list" label="${run_type.accession or 'FASTQ Reads (R2)'}">
-            <discover_datasets pattern="(?P<designation>.+)_2\.fastq\.gz" format="fastqsanger.gz" />
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)_2\.fastq\.gz" format="fastqsanger.gz" />
             <filter>layout == 'paired'</filter>
         </collection>
     </outputs>
