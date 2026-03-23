@@ -1,5 +1,5 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.12" profile="23.0">
-    <description>Fetch SRA data files from NCBI's public AWS S3 buckets</description>
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.13" profile="23.0">
+    <description>Fetches SRA runs from AWS and converts them to FASTQ</description>
 
     <requirements>
         <requirement type="package" version="2.34.8">awscli</requirement>
@@ -7,308 +7,98 @@
         <requirement type="package" version="2.8">pigz</requirement>
     </requirements>
 
-    <version_command>aws --version</version_command>
+    <version_command>fasterq-dump --version</version_command>
 
-    <command detect_errors="exit_code"><![CDATA[
-        ## ── Resolve bucket base URL ──────────────────────────────────────────────
-        #if $source.bucket == 'sra_pub_run_odp'
-            #set $s3_base = 's3://sra-pub-run-odp'
-        #elif $source.bucket == 'sra_pub_src_1'
-            #set $s3_base = 's3://sra-pub-src-1'
-        #elif $source.bucket == 'sra_pub_src_2'
-            #set $s3_base = 's3://sra-pub-src-2'
-        #elif $source.bucket == 'sra_pub_metadata'
-            #set $s3_base = 's3://sra-pub-metadata-us-east-1/sra/metadata'
-        #end if
+    <command detect_errors="aggressive"><![CDATA[
+        ## This loop handles both 'single' and 'batch' modes.
+        #for $acc_line in $run_type.mode == 'single' and str($run_type.accession).split() or $run_type.accession_list.lines:
+            #set $acc = $acc_line.strip()
+            #if $acc:
 
-        ## ── LIST mode ────────────────────────────────────────────────────────────
-        #if $action.mode == 'list'
-            #set $s3_path = $s3_base
-            #if $source.prefix
-                #set $s3_path = $s3_path + '/' + $source.prefix.strip("/")
+                echo "Processing accession: $acc" &&
+
+                ## 1. Create unique directories for this accession
+                mkdir -p sra_cache_${acc} fastq_out_${acc} &&
+
+                ## 2. Download the file from S3 using the discovered path format
+                aws s3 cp --no-sign-request 's3://sra-pub-run-odp/sra/${acc}/${acc}' ./sra_cache_${acc}/ &&
+
+                ## 3. Convert with fasterq-dump, using the correct argument order
+                fasterq-dump --outdir ./fastq_out_${acc} --temp . --threads \${GALAXY_SLOTS:-4} --split-files ./sra_cache_${acc}/${acc} &&
+
+                ## 4. Compress with pigz
+                pigz -p \${GALAXY_SLOTS:-4} ./fastq_out_${acc}/*.fastq &&
+
+                ## 5. Move outputs to special directories Galaxy can discover
+                #if $layout == 'paired'
+                    mv ./fastq_out_${acc}/${acc}_1.fastq.gz '$output_r1.files_path/${acc}_1.fastq.gz' &&
+                    mv ./fastq_out_${acc}/${acc}_2.fastq.gz '$output_r2.files_path/${acc}_2.fastq.gz'
+                #else
+                    mv ./fastq_out_${acc}/*.fastq.gz '$output_r1.files_path/${acc}.fastq.gz'
+                #end if &&
+
+                ## 6. Clean up temporary files
+                rm -rf sra_cache_${acc} fastq_out_${acc}
+
             #end if
-            aws s3 ls
-                --no-sign-request
-                #if $action.recursive
-                    --recursive
-                #end if
-                $s3_path/
-            > '$output_list'
-
-        ## ── DOWNLOAD RAW mode ────────────────────────────────────────────────────
-        #elif $action.mode == 'copy'
-            aws s3 cp
-                --no-sign-request
-                #if $action.recursive
-                    --recursive
-                #end if
-                '${s3_base}/${ $action.s3_key.strip("/") }'
-                '$output_data'
-
-        ## ── FASTQ DUMP mode (sra-pub-run-odp only) ───────────────────────────────
-        #elif $action.mode == 'fastq_dump'
-            #set $acc = $action.accession.strip()
-
-            mkdir -p sra_cache &&
-            aws s3 cp --no-sign-request '${s3_base}/sra/${acc}/${acc}' ./sra_cache/${acc} &&
-            mkdir -p fastq_out &&
-            fasterq-dump --outdir ./fastq_out --temp . --threads \${GALAXY_SLOTS:-4} --split-files ./sra_cache/${acc} &&
-            pigz -p \${GALAXY_SLOTS:-4} ./fastq_out/*.fastq &&
-            #if $action.layout == 'paired'
-                cp ./fastq_out/${acc}_1.fastq.gz '$output_r1' &&
-                cp ./fastq_out/${acc}_2.fastq.gz '$output_r2'
-            #else
-                cp ./fastq_out/${acc}.fastq.gz '$output_r1'
-            #end if
-        #end if
+        #end for
     ]]></command>
 
     <inputs>
-        <section name="source" title="Data Source" expanded="true">
-            <param name="bucket" type="select" label="SRA S3 Bucket"
-                   help="Select the NCBI SRA AWS Open Data bucket to access. FASTQ conversion is only available for sra-pub-run-odp.">
-                <option value="sra_pub_run_odp" selected="true">
-                    sra-pub-run-odp — Open-access SRA runs (.sra format)
-                </option>
-                <option value="sra_pub_src_1">
-                    sra-pub-src-1 — Source submissions: BAM/CRAM/FASTQ (PacBio, ONT, 10X) [bucket 1]
-                </option>
-                <option value="sra_pub_src_2">
-                    sra-pub-src-2 — Source submissions: BAM/CRAM/FASTQ (PacBio, ONT, 10X) [bucket 2]
-                </option>
-                <option value="sra_pub_metadata">
-                    sra-pub-metadata-us-east-1 — SRA metadata (Parquet/CSV for Athena/Glue)
-                </option>
+        <!-- This conditional allows the user to choose a single run or a list of runs -->
+        <conditional name="run_type">
+            <param name="mode" type="select" label="Execution Mode" help="Run on a single accession or a list of accessions from a file.">
+                <option value="single" selected="true">Single Accession</option>
+                <option value="batch">Batch of Accessions</option>
             </param>
-            <param name="prefix" type="text" value="" optional="true"
-                   label="S3 key prefix (optional)"
-                   help="Restrict listing to a sub-path, e.g. 'sra/SRR000001'. Used only in List mode.">
-                <sanitizer invalid_char="">
-                    <valid initial="string.printable">
-                        <remove value="'"/>
-                        <remove value='"'/>
-                    </valid>
-                </sanitizer>
-            </param>
-        </section>
-
-        <conditional name="action">
-            <param name="mode" type="select" label="Action">
-                <option value="list" selected="true">List objects</option>
-                <option value="copy">Download raw file(s)</option>
-                <option value="fastq_dump">Download and convert to FASTQ (sra-pub-run-odp only)</option>
-            </param>
-
-            <!-- ── LIST ── -->
-            <when value="list">
-                <param name="recursive" type="boolean" truevalue="--recursive" falsevalue=""
-                       checked="false" label="List recursively"
-                       help="List all objects under the prefix, not just the immediate level."/>
+            <when value="single">
+                <param name="accession" type="text" label="SRA Accession" help="e.g., SRR13333333"/>
             </when>
-
-            <!-- ── COPY ── -->
-            <when value="copy">
-                <param name="s3_key" type="text" label="S3 key to download"
-                       help="Full key of the object to download, e.g. 'sra/SRR000001/SRR000001.sra'.">
-                    <validator type="empty_field" message="An S3 key is required for download."/>
-                    <sanitizer invalid_char="">
-                        <valid initial="string.printable">
-                            <remove value="'"/>
-                            <remove value='"'/>
-                        </valid>
-                    </sanitizer>
-                </param>
-                <param name="recursive" type="boolean" truevalue="--recursive" falsevalue=""
-                       checked="false" label="Download recursively"
-                       help="Download all objects with this prefix rather than a single object."/>
-            </when>
-
-            <!-- ── FASTQ DUMP ── -->
-            <when value="fastq_dump">
-                <param name="accession" type="text" label="SRA Accession"
-                       help="SRA run accession to fetch and convert, e.g. SRR000001. Must be present in sra-pub-run-odp.">
-                </param>
-                <param name="layout" type="select" label="Read layout"
-                       help="Paired-end produces two datasets labelled accession_1 and accession_2. Single-end produces one dataset. Check the SRA record to confirm layout before running.">
-                    <option value="paired" selected="true">Paired-end (R1 + R2)</option>
-                    <option value="single">Single-end</option>
-                </param>
+            <when value="batch">
+                <param name="accession_list" type="data" format="txt" label="List of SRA Accessions" help="A plain text file with one SRA accession per line."/>
             </when>
         </conditional>
+
+        <!-- This layout parameter is always required -->
+        <param name="layout" type="select" label="Read layout" help="Check the SRA record to confirm layout before running.">
+            <option value="paired" selected="true">Paired-end (R1 + R2)</option>
+            <option value="single">Single-end</option>
+        </param>
     </inputs>
 
     <outputs>
-        <!-- List output -->
-        <data name="output_list" format="txt"
-              label="SRA S3 listing: ${source.prefix}">
-            <filter>action['mode'] == 'list'</filter>
-        </data>
-
-        <!-- Raw download -->
-        <data name="output_data" format="auto"
-              label="SRA download: ${action.s3_key}">
-            <filter>action['mode'] == 'copy'</filter>
-        </data>
-
-        <!-- FASTQ R1 / single.
-             Label matches fasterq-dump's native _1 suffix so Galaxy's
-             "Build List of Dataset Pairs" can auto-detect pairings. -->
-        <data name="output_r1" format="fastqsanger.gz"
-              label="${action.accession}_1">
-            <filter>action['mode'] == 'fastq_dump'</filter>
-        </data>
-
-        <!-- FASTQ R2 (paired-end only) -->
-        <data name="output_r2" format="fastqsanger.gz"
-              label="${action.accession}_2">
-            <filter>action['mode'] == 'fastq_dump' and action['layout'] == 'paired'</filter>
-        </data>
+        <!-- These collections will gather all the files produced by the loop -->
+        <collection name="output_r1" type="list" label="${run_type.accession or 'FASTQ Reads (R1)'}">
+            <discover_datasets pattern="(?P<designation>.+)_1\.fastq\.gz" format="fastqsanger.gz" />
+        </collection>
+        <collection name="output_r2" type="list" label="${run_type.accession or 'FASTQ Reads (R2)'}">
+            <discover_datasets pattern="(?P<designation>.+)_2\.fastq\.gz" format="fastqsanger.gz" />
+            <filter>layout == 'paired'</filter>
+        </collection>
     </outputs>
 
     <tests>
-        <!-- Test 1: list mode -->
-        <test expect_num_outputs="1">
-            <section name="source">
-                <param name="bucket" value="sra_pub_run_odp"/>
-                <param name="prefix" value="sra/SRR000001"/>
-            </section>
-            <conditional name="action">
-                <param name="mode" value="list"/>
-                <param name="recursive" value="false"/>
-            </conditional>
-            <output name="output_list">
-                <assert_contents>
-                    <has_text text="SRR000001"/>
-                </assert_contents>
-            </output>
-        </test>
-
-        <!-- Test 2: fastq_dump paired -->
         <test expect_num_outputs="2">
-            <section name="source">
-                <param name="bucket" value="sra_pub_run_odp"/>
-            </section>
-            <conditional name="action">
-                <param name="mode" value="fastq_dump"/>
-                <param name="accession" value="SRR000001"/>
-                <param name="layout" value="paired"/>
-            </conditional>
-            <output name="output_r1">
-                <assert_contents>
-                    <has_text text="@SRR000001"/>
-                </assert_contents>
-            </output>
-            <output name="output_r2">
-                <assert_contents>
-                    <has_text text="@SRR000001"/>
-                </assert_contents>
-            </output>
-        </test>
-
-        <!-- Test 3: fastq_dump single-end -->
-        <test expect_num_outputs="1">
-            <section name="source">
-                <param name="bucket" value="sra_pub_run_odp"/>
-            </section>
-            <conditional name="action">
-                <param name="mode" value="fastq_dump"/>
-                <param name="accession" value="SRR000001"/>
-                <param name="layout" value="single"/>
-            </conditional>
-            <output name="output_r1">
-                <assert_contents>
-                    <has_text text="@SRR000001"/>
-                </assert_contents>
-            </output>
+            <param name="mode" value="single"/>
+            <param name="accession" value="SRR13333333"/>
+            <param name="layout" value="paired"/>
+            <output_collection name="output_r1" type="list" count="1">
+                <element name="SRR13333333_1" ftype="fastqsanger.gz" has_text="@SRR13333333"/>
+            </output_collection>
+            <output_collection name="output_r2" type="list" count="1">
+                <element name="SRR13333333_2" ftype="fastqsanger.gz" has_text="@SRR13333333"/>
+            </output_collection>
         </test>
     </tests>
 
     <help><![CDATA[
 **NCBI SRA AWS Fetch**
 
-This tool fetches data from the `NCBI Sequence Read Archive (SRA)`_ hosted on Amazon S3
-as part of the AWS Open Data program. No AWS account is required.
+Fetches SRA runs from the public `sra-pub-run-odp` bucket on Amazon S3 and converts them to gzip-compressed FASTQ using `fasterq-dump`.
 
------
+This tool can be run on a single SRA accession or a list of accessions provided as a text file (one per line).
 
-**Available Buckets**
-
-+------------------------------+------------------------------------------------------------+
-| Bucket                       | Contents                                                   |
-+==============================+============================================================+
-| sra-pub-run-odp              | All open-access SRA runs in SRA Normalized format (.sra).  |
-|                              | Supports FASTQ conversion via this tool.                   |
-+------------------------------+------------------------------------------------------------+
-| sra-pub-src-1                | Source BAM, CRAM, and FASTQ files from PacBio, ONT, 10X.   |
-+------------------------------+------------------------------------------------------------+
-| sra-pub-src-2                | Same as above (second bucket for source submissions).      |
-+------------------------------+------------------------------------------------------------+
-| sra-pub-metadata-us-east-1   | SRA metadata in Parquet/CSV format (for Athena / Glue).    |
-+------------------------------+------------------------------------------------------------+
-
-
------
-
-**Listing objects**
-
-Select **List objects** to see what files are available under a given prefix, e.g. ``sra/SRR000001``.
-Leave the prefix blank to browse the bucket root (may return a very large listing).
-
------
-
-**Downloading raw files**
-
-Select **Download raw file(s)** and provide the full S3 key, e.g.::
-
-    sra/SRR000001/SRR000001.sra
-
------
-
-**Download and convert to FASTQ**
-
-Fetches a single SRA run from ``sra-pub-run-odp`` and converts it to gzip-compressed
-FASTQ using ``fasterq-dump``.
-
-Outputs are labelled ``<accession>_1`` (R1 / forward) and ``<accession>_2`` (R2 / reverse)
-for paired-end runs, matching ``fasterq-dump``'s native ``--split-files`` naming.
-Single-end runs produce only ``<accession>_1``.
-
-*Fetching multiple accessions and building a paired collection*
-
-Run this tool **once per accession** — either manually or by using Galaxy's dataset
-collection mapping to fan out over a list of accession identifiers. Keeping one job per
-accession means a failed download does not affect the others.
-
-Once all jobs are complete your history will contain datasets labelled::
-
-    SRR000001_1    SRR000001_2
-    SRR000002_1    SRR000002_2
-    ...
-
-Use **Galaxy's "Build List of Dataset Pairs"** tool to assemble these into a
-``list:paired`` collection. Galaxy will auto-detect the ``_1`` / ``_2`` suffixes
-and propose pairings — confirm and name the collection, then pass it directly to
-any downstream tool that accepts a paired collection (aligners, QC tools, etc.).
-
-.. warning::
-
-   This tool cannot auto-detect read layout from the accession. Check the SRA record
-   at https://www.ncbi.nlm.nih.gov/sra before running. Selecting the wrong layout will
-   produce incorrect output.
-
------
-
-**Notes**
-
-- All S3 requests are made without AWS credentials (``--no-sign-request``).
-- There is typically a **1–2 day lag** between an accession appearing in SRA Search and
-  being available in the S3 buckets.
-- Controlled-access dbGaP data (``sra-ca-run-odp``) requires AWS credentials and is
-  **not** supported by this tool.
-- ``fasterq-dump`` and ``pigz`` both use ``\${GALAXY_SLOTS}`` threads. Allocate more
-  cores in your job configuration to speed up conversion of large runs.
-
-.. _NCBI Sequence Read Archive (SRA): https://www.ncbi.nlm.nih.gov/sra
+Outputs are automatically organized into collections suitable for downstream analysis.
     ]]></help>
 
     <citations>
@@ -316,7 +106,7 @@ any downstream tool that accepts a paired collection (aligners, QC tools, etc.).
 @misc{ncbi_sra_aws,
   title        = {{NCBI} {SRA} on {AWS} Open Data},
   author       = {{National Center for Biotechnology Information}},
-  howpublished = {\url{https://registry.opendata.aws/ncbi-sra/}},
+  howpublished = {\\url{https://registry.opendata.aws/ncbi-sra/}},
   note         = {Accessed via AWS S3 without credentials}
 }
         </citation>
@@ -327,12 +117,11 @@ any downstream tool that accepts a paired collection (aligners, QC tools, etc.).
              {International Nucleotide Sequence Database Collaboration}},
   journal = {Nucleic Acids Research},
   volume  = {39},
-  number  = {suppl\_1},
+  number  = {suppl\\\_1},
   pages   = {D19--D21},
   year    = {2011},
   doi     = {10.1093/nar/gkq1019}
 }
         </citation>
     </citations>
-
 </tool>
