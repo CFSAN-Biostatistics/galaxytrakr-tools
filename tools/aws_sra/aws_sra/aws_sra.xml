@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.3" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.4" profile="23.0">
     <description>Fetch SRA data files from NCBI's public AWS S3 buckets</description>
 
     <requirements>
