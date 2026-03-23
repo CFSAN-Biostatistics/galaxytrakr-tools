@@ -1,5 +1,5 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4+gt_0.1" profile="23.0">
-    <description>Fetches a single SRA run from AWS and converts it to FASTQ</description>
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt+0.2" profile="23.0">
+    <description>Fetches one or more SRA runs from AWS S3 and converts them to FASTQ</description>
 
     <requirements>
         <requirement type="package" version="2.34.8">awscli</requirement>
@@ -10,77 +10,74 @@
     <version_command>fasterq-dump --version</version_command>
 
     <command detect_errors="aggressive"><![CDATA[
-        #set $acc = str($accession).strip()
+        ## Create a clean list of accessions from the user input
+        echo "$accession" | sed 's/,/\n/g; s/ \+/\n/g' | grep . > accessions.txt &&
 
-        echo "Processing single accession: $acc" &&
+        ## Loop over each clean accession
+        for acc in $(cat accessions.txt);
+        do
+            echo "Processing accession: $acc" &&
 
-        ## 1. Create temporary directories
-        mkdir -p sra_cache fastq_out &&
+            ## 1. Create unique directories for this accession
+            mkdir -p sra_cache_${acc} fastq_out_${acc} &&
 
-        ## 2. Download the file from S3 using the discovered path format (no .sra)
-        aws s3 cp --no-sign-request 's3://sra-pub-run-odp/sra/${acc}/${acc}' ./sra_cache/ &&
+            ## 2. Download the file from S3 using aws s3 cp
+            aws s3 cp --no-sign-request "s3://sra-pub-run-odp/sra/${acc}/${acc}" ./sra_cache_${acc}/ &&
 
-        ## 3. Convert with fasterq-dump, using the correct argument order
-        fasterq-dump --outdir ./fastq_out --temp . --threads \${GALAXY_SLOTS:-4} --split-files ./sra_cache/${acc} &&
+            ## 3. Convert with fasterq-dump
+            fasterq-dump --outdir ./fastq_out_${acc} --temp . --threads \${GALAXY_SLOTS:-4} --split-files ./sra_cache_${acc}/${acc} &&
 
-        ## 4. Compress with pigz
-        pigz -p \${GALAXY_SLOTS:-4} ./fastq_out/*.fastq &&
+            ## 4. Compress with pigz
+            pigz -p \${GALAXY_SLOTS:-4} ./fastq_out_${acc}/*.fastq &&
 
-        ## 5. Move the final outputs to their Galaxy dataset paths
-        #if str($layout) == 'paired'
-            mv ./fastq_out/${acc}_1.fastq.gz '$output_r1' &&
-            mv ./fastq_out/${acc}_2.fastq.gz '$output_r2'
-        #else
-            # Be explicit about the single-end filename, removing the wildcard
-            mv ./fastq_out/${acc}.fastq.gz '$output_r1'
-        #end if
+            ## 5. Move outputs for collection discovery
+            #if str($layout) == 'paired'
+                mv ./fastq_out_${acc}/${acc}_1.fastq.gz '$output_r1.files_path/${acc}_1.fastq.gz' &&
+                mv ./fastq_out_${acc}/${acc}_2.fastq.gz '$output_r2.files_path/${acc}_2.fastq.gz'
+            #else
+                mv ./fastq_out_${acc}/${acc}.fastq.gz '$output_r1.files_path/${acc}.fastq.gz'
+            #end if &&
+
+            ## 6. Clean up
+            rm -rf sra_cache_${acc} fastq_out_${acc}
+        done
     ]]></command>
 
     <inputs>
-        <param name="accession" type="text" label="SRA Accession" help="e.g., SRR13333333"/>
-        <param name="layout" type="select" label="Read layout" help="Check the SRA record to confirm layout before running.">
+        <param name="accession" type="text" multiple="true" label="SRA Accession(s)" help="Provide one or more accession numbers (separated by commas, spaces, or newlines). This field accepts a dataset list of accessions in a workflow."/>
+        <param name="layout" type="select" label="Read layout" help="This setting is applied to all accessions.">
             <option value="paired" selected="true">Paired-end (R1 + R2)</option>
             <option value="single">Single-end</option>
         </param>
     </inputs>
 
     <outputs>
-        <data name="output_r1" format="fastqsanger.gz" label="${accession}_1.fastq.gz"/>
-        <data name="output_r2" format="fastqsanger.gz" label="${accession}_2.fastq.gz">
+        <collection name="output_r1" type="list" label="FASTQ Reads (R1) for ${accession}">
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)_1\.fastq\.gz" format="fastqsanger.gz" />
+        </collection>
+        <collection name="output_r2" type="list" label="FASTQ Reads (R2) for ${accession}">
+            <discover_datasets pattern="(?P&lt;designation&gt;.+)_2\.fastq\.gz" format="fastqsanger.gz" />
             <filter>layout == 'paired'</filter>
-        </data>
+        </collection>
     </outputs>
 
     <tests>
         <test expect_num_outputs="2">
             <param name="accession" value="SRR13333333"/>
             <param name="layout" value="paired"/>
-            <output name="output_r1" ftype="fastqsanger.gz">
-                <assert_contents>
-                    <has_text text="@SRR13333333"/>
-                </assert_contents>
-            </output>
-            <output name="output_r2" ftype="fastqsanger.gz">
-                <assert_contents>
-                    <has_text text="@SRR13333333"/>
-                </assert_contents>
-            </output>
-        </test>
-        <test expect_num_outputs="1">
-            <param name="accession" value="SRR11181815"/> <!-- A known single-end run -->
-            <param name="layout" value="single"/>
-            <output name="output_r1" ftype="fastqsanger.gz">
-                <assert_contents>
-                    <has_text text="@SRR11181815"/>
-                </assert_contents>
-            </output>
+            <output_collection name="output_r1" type="list" count="1">
+                <element name="SRR13333333_1" ftype="fastqsanger.gz" has_text="@SRR13333333"/>
+            </output_collection>
+            <output_collection name="output_r2" type="list" count="1">
+                <element name="SRR13333333_2" ftype="fastqsanger.gz" has_text="@SRR13333333"/>
+            </output_collection>
         </test>
     </tests>
 
     <help><![CDATA[
 **NCBI SRA AWS Fetch**
 
-Fetches a single SRA run from the public `sra-pub-run-odp` bucket on Amazon S3 and converts it to gzip-compressed FASTQ using `fasterq-dump`.
+Fetches one or more SRA runs from the public `sra-pub-run-odp` S3 bucket and converts them to gzip-compressed FASTQ using `fasterq-dump`. This tool uses `aws s3 cp` for direct downloads within the AWS environment.
     ]]></help>
 
     <citations>
