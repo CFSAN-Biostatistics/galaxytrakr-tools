@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.5" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.6" profile="23.0">
     <description>Fetch SRA data files from NCBI's public AWS S3 buckets</description>
 
     <requirements>
@@ -23,16 +23,16 @@
 
         ## ── LIST mode ────────────────────────────────────────────────────────────
         #if $action.mode == 'list'
-            aws s3 ls
-                --no-sign-request
-                #if $source.prefix
-                    '${s3_base}/${ $source.prefix.strip("/") }/'
-                #else
-                    '${s3_base}/'
-                #end if
+            #set $s3_path = $s3_base
+            #if $source.prefix
+                #set $s3_path = $s3_path + '/' + $source.prefix.strip("/")
+            #end if
+            aws s3 ls \
+                --no-sign-request \
                 #if $action.recursive
                     --recursive
-                #end if
+                #end if \
+                $s3_path/ \
             > '$output_list'
 
         ## ── DOWNLOAD RAW mode ────────────────────────────────────────────────────
