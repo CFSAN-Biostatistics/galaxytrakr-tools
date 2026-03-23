@@ -1,5 +1,5 @@
 name: aws_sra
-owner: estrain
+owner: galaxytrakr
 description: Fetch data, list objects, or convert to FASTQ from NCBI SRA on AWS.
 long_description: |
   This tool provides a versatile interface to the NCBI Sequence Read Archive (SRA) open data buckets on Amazon S3.
