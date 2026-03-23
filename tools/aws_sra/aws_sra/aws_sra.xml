@@ -1,10 +1,10 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.2" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.3" profile="23.0">
     <description>Fetch SRA data files from NCBI's public AWS S3 buckets</description>
 
     <requirements>
-        <requirement type="package" version="2.34.8" channel="conda-forge">awscli</requirement>
-        <requirement type="package" version="3.2.1" channel="bioconda">sra-tools</requirement>
-        <requirement type="package" version="2.8" channel="conda-forge">pigz</requirement>
+        <requirement type="package" version="2.34.8">awscli</requirement>
+        <requirement type="package" version="3.2.1">sra-tools</requirement>
+        <requirement type="package" version="2.8">pigz</requirement>
     </requirements>
 
     <version_command>aws --version</version_command>
@@ -146,10 +146,8 @@
             <when value="fastq_dump">
                 <param name="accession" type="text" label="SRA Accession"
                        help="SRA run accession to fetch and convert, e.g. SRR000001. Must be present in sra-pub-run-odp.">
-                    <validator type="empty_field" message="An SRA accession is required."/>
-                    <validator type="regex"
-                               message="Must be a valid SRA run accession (SRR, ERR, or DRR followed by digits)."
-                               expression="^[SED]RR[0-9]+$"/>
+                    <validator type="empty_field" message="An SRA accession is required."/>     
+                    <validator type="regex" message="Must be a valid SRA run accession (SRR, ERR, or DRR followed by digits).">^\[SED\]RR\[0-9\]+$</validator>
                 </param>
                 <param name="layout" type="select" label="Read layout"
                        help="Paired-end produces two datasets labelled accession_1 and accession_2. Single-end produces one dataset. Check the SRA record to confirm layout before running.">
@@ -262,12 +260,13 @@ as part of the AWS Open Data program. No AWS account is required.
 | sra-pub-run-odp              | All open-access SRA runs in SRA Normalized format (.sra).  |
 |                              | Supports FASTQ conversion via this tool.                   |
 +------------------------------+------------------------------------------------------------+
-| sra-pub-src-1                | Source BAM, CRAM, and FASTQ files from PacBio, ONT, 10X.  |
+| sra-pub-src-1                | Source BAM, CRAM, and FASTQ files from PacBio, ONT, 10X.   |
 +------------------------------+------------------------------------------------------------+
-| sra-pub-src-2                | Same as above (second bucket for source submissions).       |
+| sra-pub-src-2                | Same as above (second bucket for source submissions).      |
 +------------------------------+------------------------------------------------------------+
 | sra-pub-metadata-us-east-1   | SRA metadata in Parquet/CSV format (for Athena / Glue).    |
 +------------------------------+------------------------------------------------------------+
+
 
 -----
 
