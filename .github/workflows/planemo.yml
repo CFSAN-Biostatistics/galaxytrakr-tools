@@ -87,6 +87,7 @@ jobs:
             
             planemo mull \
               --mulled_namespace galaxytrakr \
+              --conda_channels conda-forge,bioconda,defaults \
               "$xml" || { echo "Build failed for $xml"; continue; }
             
             # Find the most recently built image
