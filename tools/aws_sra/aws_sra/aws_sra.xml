@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.17" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.3.0+gt_0.18" profile="23.0">
     <description>Fetches SRA runs from AWS and converts them to FASTQ</description>
     <requirements>
         <requirement type="package" version="2.34.8">awscli</requirement>
@@ -17,7 +17,6 @@
             fasterq-dump --outdir ./fastq_out --temp . --threads \${GALAXY_SLOTS:-4} --split-files ./sra_cache/${acc} &&
             pigz -p \${GALAXY_SLOTS:-4} ./fastq_out/*.fastq &&
             #if str($layout) == 'paired'
-                # Move files directly to the single output datasets
                 mv ./fastq_out/${acc}_1.fastq.gz '$output_r1_single' &&
                 mv ./fastq_out/${acc}_2.fastq.gz '$output_r2_single'
             #else
