@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_1.1" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_1.2" profile="23.0">
     <description>Fetches one or more SRA runs from AWS S3 and converts them to FASTQ</description>
 
     <requirements>
@@ -80,13 +80,13 @@
     <outputs>
         <collection name="list_paired" type="list:paired" label="Paired-end FASTQ (aws_sra)">
             <discover_datasets
-                pattern="(?P&lt;identifier_0&gt;[^_]+)_(?P&lt;identifier_1&gt;[12])\.fastqsanger\.gz"
+                pattern="(?P&lt;identifier_0&gt;[^_]+)_(?P&lt;identifier_1&gt;[^_]+)\\.fastqsanger\\.gz"
                 directory="output"
                 ext="fastqsanger.gz"/>
         </collection>
         <collection name="output_single" type="list" label="Single-end FASTQ (aws_sra)">
             <discover_datasets
-                pattern="(?P&lt;designation&gt;.+?)(?&lt;!_[12])\\.fastqsanger\\.gz"
+                pattern="(?P&lt;designation&gt;.+)\\.fastqsanger\\.gz"
                 directory="outputSingle"
                 ext="fastqsanger.gz"/>
         </collection>
