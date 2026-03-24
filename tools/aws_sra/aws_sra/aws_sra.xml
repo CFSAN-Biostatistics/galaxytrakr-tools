@@ -1,91 +1,145 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_0.8" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_0.50" profile="22.01">
     <description>Fetches one or more SRA runs from AWS S3 and converts them to FASTQ</description>
 
     <requirements>
-        <requirement type="package" version="2.34.8">awscli</requirement>
-        <requirement type="package" version="3.2.1">sra-tools</requirement>
+        <requirement type="package" version="3.1.1">sra-tools</requirement>
         <requirement type="package" version="2.8">pigz</requirement>
+        <requirement type="package" version="2.34.8">awscli</requirement>
     </requirements>
 
     <version_command>fasterq-dump --version</version_command>
 
-    <command detect_errors="aggressive"><![CDATA[
-        ## Create a clean list of accessions from the user input
-        echo "$accession" | sed 's/,/\n/g; s/ \+/\n/g' | grep . > accessions.txt &&
-
-        ## Loop over each clean accession
-        for acc in $(cat accessions.txt);
-        do
-            echo "Processing accession: $acc" &&
-
-            ## 1. Create unique directories for this accession
-            mkdir -p sra_cache_${acc} fastq_out_${acc} &&
-
-            ## 2. Download the file from S3 using aws s3 cp
-            aws s3 cp --no-sign-request "s3://sra-pub-run-odp/sra/${acc}/${acc}" ./sra_cache_${acc}/ &&
-
-            ## 3. Convert with fasterq-dump
-            fasterq-dump --outdir ./fastq_out_${acc} --temp . --threads \${GALAXY_SLOTS:-4} --split-files ./sra_cache_${acc}/${acc} &&
-
-            ## 4. Compress with pigz
-            pigz -p \${GALAXY_SLOTS:-4} ./fastq_out_${acc}/*.fastq &&
-
-            ## 5. Move outputs for collection discovery
-            #if str($layout) == 'paired'
-                mv ./fastq_out_${acc}/${acc}_1.fastq.gz '$output_r1.files_path/${acc}_1.fastq.gz' &&
-                mv ./fastq_out_${acc}/${acc}_2.fastq.gz '$output_r2.files_path/${acc}_2.fastq.gz'
-            #else
-                mv ./fastq_out_${acc}/${acc}.fastq.gz '$output_r1.files_path/${acc}.fastq.gz'
-            #end if &&
-
-            ## 6. Clean up
-            rm -rf sra_cache_${acc} fastq_out_${acc}
-        done
+    <command detect_errors="exit_code"><![CDATA[
+    #if $input.input_select == "accession_number":
+        echo '${input.accession}' | sed -r 's/(\,|\;|__cn__)/\n/g' > accessions &&
+    #else:
+        grep '^[[:space:]]*[ESD]RR[0-9]\{1,\}[[:space:]]*$' '${input.file_list}' > accessions &&
+    #end if
+    mkdir -p output &&
+    mkdir -p outputOther &&
+    for acc in \$(cat ./accessions);
+    do (
+        echo "Processing accession: \$acc" &&
+        mkdir -p sra_cache_\${acc} &&
+        aws s3 cp --no-sign-request "s3://sra-pub-run-odp/sra/\${acc}/\${acc}" ./sra_cache_\${acc}/\${acc} &&
+        fasterq-dump -e \${GALAXY_SLOTS:-4} -t . --split-3 ./sra_cache_\${acc}/\${acc} &&
+        rm -rf sra_cache_\${acc} &&
+        count="\$(ls \${acc}*.fastq 2>/dev/null | wc -l)" &&
+        echo "Found \$count fastq file(s) for \$acc" &&
+        data=(\$(ls \${acc}*.fastq 2>/dev/null)) &&
+        if [ "\$count" -eq 1 ]; then
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${data[0]}" > output/"\${acc}".fastqsanger.gz &&
+            rm "\${data[0]}";
+        elif [ -e "\${acc}".fastq ]; then
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}".fastq > outputOther/"\${acc}"__single.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_1.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_2.fastq > output/"\${acc}"_2.fastqsanger.gz &&
+            rm "\${acc}"*.fastq;
+        elif [ "\$count" -eq 2 ]; then
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_1.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_2.fastq > output/"\${acc}"_2.fastqsanger.gz &&
+            rm "\${acc}"*.fastq;
+        else
+            for file in \${data[*]}; do
+                pigz -cqp \${GALAXY_SLOTS:-4} "\$file" > outputOther/"\$file"sanger.gz &&
+                rm "\$file";
+            done;
+        fi
+    ); done;
+    echo "Done with all accessions."
     ]]></command>
 
     <inputs>
-        <param name="accession" type="text" label="SRA Accession(s)" help="Provide one or more accession numbers (separated by commas, spaces, or newlines)."/>
-        <param name="layout" type="select" label="Read layout" help="This setting is applied to all accessions.">
-            <option value="paired" selected="true">Paired-end (R1 + R2)</option>
-            <option value="single">Single-end</option>
-        </param>
+        <conditional name="input">
+            <param name="input_select" type="select" label="Select input type">
+                <option value="accession_number">SRA Accession number(s)</option>
+                <option value="file_list">File containing accession list</option>
+            </param>
+            <when value="accession_number">
+                <param name="accession" type="text" label="SRA Accession(s)"
+                       help="One or more SRA run accessions (SRR, ERR, or DRR), separated by commas or spaces.">
+                    <validator type="empty_field" message="At least one SRA accession is required."/>
+                    <sanitizer>
+                        <valid initial="string.printable">
+                            <remove value="&apos;"/>
+                        </valid>
+                        <mapping initial="none">
+                            <add source="&apos;" target="&apos;&quot;&apos;&quot;&apos;"/>
+                        </mapping>
+                    </sanitizer>
+                </param>
+            </when>
+            <when value="file_list">
+                <param name="file_list" type="data" format="txt,tabular" label="Accession list file"
+                       help="A text file with one SRA accession (SRR, ERR, or DRR) per line."/>
+            </when>
+        </conditional>
     </inputs>
 
     <outputs>
-        <collection name="output_r1" type="list" label="FASTQ Reads (R1) for ${accession}">
-            <discover_datasets pattern="(?P&lt;designation&gt;.+)_1\.fastq\.gz" format="fastqsanger.gz" />
+        <collection name="list_paired" type="list:paired" label="Paired-end FASTQ (aws_sra)">
+            <discover_datasets
+                pattern="(?P&lt;identifier_0&gt;[^_]+)_(?P&lt;identifier_1&gt;[12])\.fastqsanger\.gz"
+                directory="output"
+                ext="fastqsanger.gz"/>
         </collection>
-        <collection name="output_r2" type="list" label="FASTQ Reads (R2) for ${accession}">
-            <discover_datasets pattern="(?P&lt;designation&gt;.+)_2\.fastq\.gz" format="fastqsanger.gz" />
-            <filter>layout == 'paired'</filter>
+        <collection name="output_single" type="list" label="Single-end FASTQ (aws_sra)">
+            <discover_datasets
+                pattern="(?P&lt;designation&gt;.+)\.fastqsanger\.gz"
+                directory="output"
+                ext="fastqsanger.gz"/>
+        </collection>
+        <collection name="output_other" type="list" label="Other FASTQ (aws_sra)">
+            <discover_datasets
+                pattern="(?P&lt;designation&gt;.+)\.fastqsanger\.gz"
+                directory="outputOther"
+                format="fastqsanger.gz"/>
         </collection>
     </outputs>
 
     <tests>
-        <test expect_num_outputs="2">
-            <param name="accession" value="SRR13333333"/>
-            <param name="layout" value="paired"/>
-            <output_collection name="output_r1" type="list" count="1">
-                <element name="SRR13333333_1" ftype="fastqsanger.gz">
-                    <assert_contents>
-                        <has_text text="@SRR13333333"/>
-                    </assert_contents>
-                </element>
-            </output_collection>
-            <output_collection name="output_r2" type="list" count="1">
-                <element name="SRR13333333_2" ftype="fastqsanger.gz">
-                    <assert_contents>
-                        <has_text text="@SRR13333333"/>
-                    </assert_contents>
+        <test expect_num_outputs="3">
+            <conditional name="input">
+                <param name="input_select" value="accession_number"/>
+                <param name="accession" value="SRR13333333"/>
+            </conditional>
+            <output_collection name="list_paired" type="list:paired" count="1">
+                <element name="SRR13333333">
+                    <element name="forward" ftype="fastqsanger.gz">
+                        <assert_contents>
+                            <has_text text="@SRR13333333"/>
+                        </assert_contents>
+                    </element>
+                    <element name="reverse" ftype="fastqsanger.gz">
+                        <assert_contents>
+                            <has_text text="@SRR13333333"/>
+                        </assert_contents>
+                    </element>
                 </element>
             </output_collection>
         </test>
+
     </tests>
 
     <help><![CDATA[
 **NCBI SRA AWS Fetch**
 
-Fetches one or more SRA runs from the public `sra-pub-run-odp` S3 bucket and converts them to gzip-compressed FASTQ using `fasterq-dump`. This tool uses `aws s3 cp` for direct downloads within the AWS environment.
+Fetches one or more SRA runs from the public ``sra-pub-run-odp`` S3 bucket and converts them to
+gzip-compressed FASTQ using ``fasterq-dump``. Downloads use ``aws s3 cp`` with no credentials
+required (public bucket).
+
+**Inputs**
+
+- **SRA Accession number(s)**: Type one or more accessions (SRR, ERR, or DRR) directly, comma- or space-separated.
+- **File containing accession list**: A text file with one accession per line. This option is connectable as a workflow input.
+
+**Outputs**
+
+Three collections are always created (some may be empty depending on the data):
+
+- **Paired-end FASTQ**: A nested ``list:paired`` collection — each accession contains a forward/reverse pair.
+- **Single-end FASTQ**: A flat list for reads confirmed single-end by ``--split-3``.
+- **Other FASTQ**: Reads that could not be cleanly classified.
     ]]></help>
 
     <citations>
@@ -93,22 +147,10 @@ Fetches one or more SRA runs from the public `sra-pub-run-odp` S3 bucket and con
 @misc{ncbi_sra_aws,
   title        = {{NCBI} {SRA} on {AWS} Open Data},
   author       = {{National Center for Biotechnology Information}},
-  howpublished = {\\url{https://registry.opendata.aws/ncbi-sra/}},
+  howpublished = {\url{https://registry.opendata.aws/ncbi-sra/}},
   note         = {Accessed via AWS S3 without credentials}
 }
         </citation>
-        <citation type="bibtex">
-@article{sra_toolkit,
-  title   = {The {NCBI} {SRA} and portable data in biology},
-  author  = {Leinonen, Rasko and Sugawara, Hideaki and Shumway, Martin and
-             {International Nucleotide Sequence Database Collaboration}},
-  journal = {Nucleic Acids Research},
-  volume  = {39},
-  number  = {suppl\\\_1},
-  pages   = {D19--D21},
-  year    = {2011},
-  doi     = {10.1093/nar/gkq1019}
-}
-        </citation>
+        <citation type="doi">10.1093/nar/gkq1019</citation>
     </citations>
 </tool>
