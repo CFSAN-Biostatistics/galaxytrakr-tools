@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt+0.2" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt+0.3" profile="23.0">
     <description>Fetches one or more SRA runs from AWS S3 and converts them to FASTQ</description>
 
     <requirements>
@@ -66,10 +66,18 @@
             <param name="accession" value="SRR13333333"/>
             <param name="layout" value="paired"/>
             <output_collection name="output_r1" type="list" count="1">
-                <element name="SRR13333333_1" ftype="fastqsanger.gz" has_text="@SRR13333333"/>
+                <element name="SRR13333333_1" ftype="fastqsanger.gz">
+                    <assert_contents>
+                        <has_text text="@SRR13333333"/>
+                    </assert_contents>
+                </element>
             </output_collection>
             <output_collection name="output_r2" type="list" count="1">
-                <element name="SRR13333333_2" ftype="fastqsanger.gz" has_text="@SRR13333333"/>
+                <element name="SRR13333333_2" ftype="fastqsanger.gz">
+                    <assert_contents>
+                        <has_text text="@SRR13333333"/>
+                    </assert_contents>
+                </element>
             </output_collection>
         </test>
     </tests>
