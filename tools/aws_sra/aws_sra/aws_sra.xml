@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_0.6" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_0.7" profile="23.0">
     <description>Fetches one or more SRA runs from AWS S3 and converts them to FASTQ</description>
 
     <requirements>
@@ -44,8 +44,8 @@
     ]]></command>
 
     <inputs>
-        <param name="accession" type="data" format="txt" multiple="true" label="SRA Accession(s)" help="Provide one or more accession numbers (separated by commas, spaces, or newlines). This field accepts a dataset list of accessions in a workflow."/>
-        <param name="layout" type="select" label="Read layout" help="This setting is applied to all accessions.">
+        <param name="accession" type="text" label="SRA Accession(s)" value="" optional="false" help="Provide one or more accession numbers (separated by commas, spaces, or newlines)."/>
+        <param name="layout" type="select" label="Read layout" optional="false" help="This setting is applied to all accessions.">
             <option value="paired" selected="true">Paired-end (R1 + R2)</option>
             <option value="single">Single-end</option>
         </param>
