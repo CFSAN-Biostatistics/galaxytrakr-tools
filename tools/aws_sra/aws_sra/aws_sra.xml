@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_1.4" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_1.5" profile="23.0">
     <description>Fetches one or more SRA runs from AWS S3 and converts them to FASTQ</description>
 
     <requirements>
@@ -33,12 +33,12 @@
             rm "\${data[0]}";
         elif [ -e "\${acc}".fastq ]; then
             pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}".fastq > outputOther/"\${acc}"__single.fastqsanger.gz &&
-            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_1.fastqsanger.gz &&
-            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_2.fastq > output/"\${acc}"_2.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_forward.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_2.fastq > output/"\${acc}"_reverse.fastqsanger.gz &&
             rm "\${acc}"*.fastq;
         elif [ "\$count" -eq 2 ]; then
-            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_1.fastqsanger.gz &&
-            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_2.fastq > output/"\${acc}"_2.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_forward.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_2.fastq > output/"\${acc}"_reverse.fastqsanger.gz &&
             rm "\${acc}"*.fastq;
         else
             for file in \${data[*]}; do
