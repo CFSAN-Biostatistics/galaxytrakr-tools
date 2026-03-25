@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_1.8" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_1.9" profile="23.0">
     <description>Fetches one or more SRA runs from AWS S3 and converts them to FASTQ</description>
 
     <requirements>
@@ -29,7 +29,7 @@
         echo "Found \$count fastq file(s) for \$acc" &&
         data=(\$(ls \${acc}*.fastq 2>/dev/null)) &&
         if [ "\$count" -eq 1 ]; then
-            pigz -cqp \${GALAXY_SLOTS:-4} "\${data[0]}" > outputSingle/"\${acc}__single.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${data[0]}" > outputSingle/"\${acc}"__single.fastqsanger.gz &&
             rm "\${data[0]}";
         elif [ "\$count" -eq 2 ]; then
             pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_forward.fastqsanger.gz &&
