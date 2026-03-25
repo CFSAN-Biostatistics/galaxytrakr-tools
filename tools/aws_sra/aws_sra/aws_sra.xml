@@ -1,4 +1,4 @@
-<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_1.9" profile="23.0">
+<tool id="aws_sra" name="NCBI SRA AWS Fetch" version="0.4.0+gt_2.00" profile="23.0">
     <description>Fetches one or more SRA runs from AWS S3 and converts them to FASTQ</description>
 
     <requirements>
@@ -35,10 +35,10 @@
             pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_forward.fastqsanger.gz &&
             pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_2.fastq > output/"\${acc}"_reverse.fastqsanger.gz &&
             rm "\${acc}"*.fastq;
-        elif [ -e "\${acc}".fastq ]; then
+        elif [ "\$count" -eq 3 ]; then
             pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}".fastq > outputSingle/"\${acc}"__single.fastqsanger.gz &&
-            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_forward.fastq > output/"\${acc}"_forward.fastqsanger.gz &&
-            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_reverse.fastq > output/"\${acc}"_reverse.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_1.fastq > output/"\${acc}"_forward.fastqsanger.gz &&
+            pigz -cqp \${GALAXY_SLOTS:-4} "\${acc}"_2.fastq > output/"\${acc}"_reverse.fastqsanger.gz &&
             rm "\${acc}"*.fastq;
         else
             for file in \${data[*]}; do
@@ -80,13 +80,13 @@
     <outputs>
         <collection name="list_paired" type="list:paired" label="Paired-end FASTQ (aws_sra)">
             <discover_datasets
-                pattern="(?P&lt;identifier_0&gt;[^_]+)_(?P&lt;identifier_1&gt;[^_]+)\.fastqsanger.gz"
+                pattern="(?P&lt;identifier_0&gt;[^_]+)_(?P&lt;identifier_1&gt;[^_]+)\.fastqsanger\.gz"
                 directory="output"
                 ext="fastqsanger.gz"/>
         </collection>
         <collection name="output_single" type="list" label="Single-end FASTQ (aws_sra)">
             <discover_datasets
-                pattern="(?P&lt;designation&gt;.+)__single\.fastqsanger.gz"
+                pattern="(?P&lt;designation&gt;.+)__single\.fastqsanger\.gz"
                 directory="outputSingle"
                 ext="fastqsanger.gz"/>
         </collection>
