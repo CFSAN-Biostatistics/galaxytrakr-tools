@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <data_managers>
-    <data_manager tool_file="data_manager/mapseq_db_fetcher.xml" id="data_manager_mapseq">
+    <data_manager tool_file="data_manager/data_manager_mapseq.xml" id="data_manager_mapseq">
       <data_table name="mapseq_db">
         <output>
           <column name="value" />
