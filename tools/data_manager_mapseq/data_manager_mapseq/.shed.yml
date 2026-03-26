@@ -1,0 +1,8 @@
+name: data_manager_mapseq
+owner: galaxytrakr
+description: data_manager_mapseq
+long_description: Data manager for mapseq
+homepage_url:
+type: unrestricted
+categories:
+  - "Tools"
