@@ -1,0 +1,5 @@
+#This file lists the columns that will be specified by the RGI Data Manager tool.
+#
+#For example:
+#<value>    <name>    <path>
+#rgi_20181001    rgi_20181001    /galaxy-central/tool-data/rgi_databases/rgi_20181001
