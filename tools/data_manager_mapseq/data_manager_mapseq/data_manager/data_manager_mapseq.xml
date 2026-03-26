@@ -1,4 +1,4 @@
-<tool id="mapseq_db_fetcher" name="Mapseq DB fetcher" tool_type="manage_data" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
+<tool id="data_manager_mapseq" name="Mapseq DB fetcher" tool_type="manage_data" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
     <description>Fetches the DB required for mapseq</description>
     <macros>
         <import>macros.xml</import>
