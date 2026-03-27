@@ -1,5 +1,5 @@
 name: gtsubsampler
-owner: galaxytrakr
+owner: jpayne
 description: Subsample reads to target genomic sequencing depth
 long_description: Subsample reads to target genomic sequencing depth
 homepage_url:
