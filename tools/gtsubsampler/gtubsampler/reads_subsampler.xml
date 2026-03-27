@@ -1,0 +1,121 @@
+<tool id="reads_subsampler" name="Subsample FASTQ Reads" version="1.0.0" python_template_version="3.5">
+    <description>to reduce excess genomic coverage</description>
+    <requirements>
+        <requirement type="package" version="3.7">python</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        #if $reads.reads_select == 'collection'
+            python3 ${__tool_directory__}/subsamplr.py '$reads.coll.forward' '$reads.coll.reverse' '$downsampled.forward' '$downsampled.reverse' $coverage $genome_size '$seed'
+        #elif $reads.reads_select == 'single'
+            python3 ${__tool_directory__}/subsamplr.py '$forward' '$forward_out' $coverage $genome_size '$seed'
+        #else 
+            python3 ${__tool_directory__}/subsamplr.py '$forward' '$reverse' $forward_out $reverse_out $coverage $genome_size '$seed'
+        #end if
+    ]]></command>
+    <inputs>
+        <conditional name="reads">
+            <param name="reads_select" type="select" label="Paired-end collection, or two datasets from your history">
+                <option value="collection">Paired collection from your history</option>
+                <option value="history">Two FASTQ datasets from your history representing paired reads, forward and reverse</option>
+                <option value="single">One FASTQ dataset representing single-end sequencing</option>
+            </param>
+            <when value="collection">
+                <param label="Paired reads" name="coll" type="data_collection" format="fastq,fastqsanger,fastq.gz,fastqsanger.gz,fastq.bz2,fastqsanger.bz2" collection_type="paired" />
+            </when>
+            <when value="history">
+                <param label="Forward reads" type="data" name="forward" format="fastq,fastqsanger,fastq.gz,fastqsanger.gz,fastq.bz2,fastqsanger.bz2" />
+                <param label="Reverse reads" type="data" name="reverse" format="fastq,fastqsanger,fastq.gz,fastqsanger.gz,fastq.bz2,fastqsanger.bz2" />
+            </when>
+            <when value="single">
+                <param label="Reads" type="data" name="forward" format="fastq,fastqsanger,fastq.gz,fastqsanger.gz,fastq.bz2,fastqsanger.bz2" />
+            </when>
+        </conditional>
+        <param name="coverage" type="integer" label="Maximum Coverage" value="200" />
+        <param name="genome_size" type="select" label="Assumed Genome Size">
+            <option value="5000000">Salmonella, E. Coli, Vibrio p. (5000000)</option>
+            <option value="4000000">Vibrio cholerae (4000000)</option>
+            <option value="2700000">Listeria (2700000)</option>
+            <option value="1600000">Campylobacter (1600000)</option>
+            <option value="29900">SARS-CoV-2 (29900)</option>
+        </param>
+        <param name="seed" type="text" value="ed2b99d842cddc1ac81d7c01a0bf0555" label="Random seed (you don't have to change this)"/>
+    </inputs>
+    <outputs>
+        <data name="forward_out" label="${reads.forward.name}.downsampled" format_source="forward">
+            <filter>reads['reads_select'] == "history" or reads['reads_select'] == "single"</filter>
+        </data>
+        <data name="reverse_out" label="${reads.reverse.name}.downsampled" format_source="reverse">
+            <filter>reads['reads_select'] == "history"</filter>
+        </data>
+        <collection name="downsampled" type="paired" label="${reads.coll.name}" structured_like="reads|coll" format_source="reads|coll">
+            <filter>reads['reads_select'] == "collection"</filter>
+            <data name="forward" label="${reads.coll.forward.name}.downsampled" format_source="reads.coll.forward" />
+            <data name="reverse" label="${reads.coll.reverse.name}.downsampled" format_source="reads.coll.reverse" />
+        </collection>
+    </outputs>
+    <tests>
+        <test>
+            <conditional name="reads">
+                <param name="reads_select" value="single" />
+                <param name="forward" value="forward.fastq" />
+            </conditional>
+            <param name="coverage" value="20" />
+            <param name="genome_size" value="29900" />
+            <output name="forward_out" value="forward_out.fastq" />
+        </test>
+        <test>
+            <conditional name="reads">
+                <param name="reads_select" value="collection" />
+                <param name="coll">
+                    <collection type="paired">
+                        <element name="forward" value="forward.fastq" ftype="fastqsanger" />
+                        <element name="reverse" value="reverse.fastq" ftype="fastqsanger" />
+                    </collection>
+                </param>
+            </conditional>
+            <param name="coverage" value="20" />
+            <param name="genome_size" value="29900" />
+            <output_collection name="downsampled" type="paired">
+                <element name="forward" file="forward_out.fastq" />
+                <element name="reverse" file="reverse_out.fastq" />
+            </output_collection>
+        </test>
+        <test>
+            <conditional name="reads">
+                <param name="reads_select" value="history" />
+                <param name="forward" value="forward.fastq" />
+                <param name="reverse" value="reverse.fastq" />
+            </conditional>
+            <param name="coverage" value="20" />
+            <param name="genome_size" value="29900" />
+            <output name="forward_out" value="forward_out.fastq" />
+            <output name="reverse_out" value="reverse_out.fastq" /> 
+        </test>
+        <test>
+            <conditional name="reads">
+                <param name="reads_select" value="history" />
+                <param name="forward" value="forward.fastq.gz" />
+                <param name="reverse" value="reverse.fastq.gz" />
+            </conditional>
+            <param name="coverage" value="20" />
+            <param name="genome_size" value="29900" />
+            <output name="forward_out" value="forward_out.fastq.gz"  decompress="true" />
+            <output name="reverse_out" value="reverse_out.fastq.gz"  decompress="true" /> 
+        </test>
+        <test>
+            <conditional name="reads">
+                <param name="reads_select" value="history" />
+                <param name="forward" value="forward.fastq.bz2" />
+                <param name="reverse" value="reverse.fastq.bz2" />
+            </conditional>
+            <param name="coverage" value="20" />
+            <param name="genome_size" value="29900" />
+            <output name="forward_out" value="forward_out.fastq.bz2" decompress="true" />
+            <output name="reverse_out" value="reverse_out.fastq.bz2" decompress="true" /> 
+        </test>
+    </tests>
+    <help><![CDATA[
+        Randomly subsample single or paired-end FASTQ reads to target a certain genomic coverage depth.
+    ]]></help>
+    <citations />
+</tool>

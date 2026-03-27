@@ -1,0 +1,8 @@
+name: gtsubsampler
+owner: galaxytrakr
+description: Subsample reads to target genomic sequencing depth
+long_description: Subsample reads to target genomic sequencing depth
+homepage_url:
+type: unrestricted
+categories:
+  - "Tools"
