@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="Predict Isolate Source" version="0.1.2">
+<tool id="plasmidtrakr" name="Predict Isolate Source" version="0.1.3">
     <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
 
     <requirements>
