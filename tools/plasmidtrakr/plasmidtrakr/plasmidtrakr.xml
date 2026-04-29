@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="Predict Isolate Source" version="0.1.4">
+<tool id="plasmidtrakr" name="Predict Isolate Source" version="0.1.5">
     <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
 
     <requirements>
@@ -6,14 +6,8 @@
         <requirement type="package" version="1.2.2">scikit-learn</requirement>
     </requirements>
 
-    <!-- FIXED: Added $ before __tool_directory__ -->
-    <version_command>
-        python '$__tool_directory__/predict_source.py' --version
-    </version_command>
-
-    <!-- FIXED: Added $ before __tool_directory__ -->
     <command detect_errors="exit_code"><![CDATA[
-        python '$__tool_directory__/predict_source.py'
+        python ${__tool_directory__}/predict_source.py
             -i '$mash_input'
             -b '$model_selection.path'
             -t '$threshold'
