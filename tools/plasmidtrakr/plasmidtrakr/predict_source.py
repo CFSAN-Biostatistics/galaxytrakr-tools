@@ -10,11 +10,10 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 def main():
     parser = argparse.ArgumentParser(description="Predict the source of an isolate using a trained Random Forest model and Mash distances.")
+    parser.add_argument('--version', action='version', version='PlasmidTrakr v0.1.0')
+
     parser.add_argument("-i", "--input", required=True, help="Input Mash screen/dist file for one or more isolates.")
-    
-    # --- KEY FIX 1: Replaced -m and -f with a single -b (bundle) argument ---
     parser.add_argument("-b", "--bundle", required=True, help="Path to the bundled model and features (.joblib file)")
-    
     parser.add_argument("-t", "--threshold", type=float, default=0.95, help="Mash identity threshold (default: 0.95)")
     parser.add_argument("-o", "--output", default="predictions.tsv", help="Output file for predictions (default: predictions.tsv)")
     args = parser.parse_args()
