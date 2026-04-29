@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="Predict Isolate Source" version="0.1.6">
+<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.1.8">
     <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
 
     <requirements>
@@ -7,7 +7,7 @@
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
-        python ${__tool_directory__}/predict_source.py
+        python $__tool_directory__/predict_source.py
             -i '$mash_input'
             -b '$model_selection.path'
             -t '$threshold'
