@@ -1,4 +1,4 @@
-name: plasmidtrakr
+name: galaxytrakr
 owner: estrain
 description: Predicts isolate source from plasmid profiles using machine learning.
 long_description: |
