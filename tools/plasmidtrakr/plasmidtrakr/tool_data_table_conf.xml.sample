@@ -1,0 +1,7 @@
+<tables>
+    <!-- Location of ML models for PlasmidTrakr -->
+    <table name="plasmidtrakr_models" comment_char="#">
+        <columns>value, name, path</columns>
+        <file path="tool-data/plasmidtrakr.loc" />
+    </table>
+</tables>

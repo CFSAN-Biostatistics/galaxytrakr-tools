@@ -1,0 +1,11 @@
+name: plasmidtrakr
+owner: estrain
+description: Predicts isolate source from plasmid profiles using machine learning.
+long_description: |
+  PlasmidTrakr parses the output of mash screen against a plasmid database 
+  and applies machine learning to predict the biological source 
+  or geographic origin of the isolate.
+homepage_url: https://github.com/estrain/plasmidtrakr
+type: unrestricted
+categories:
+  - "Tools"

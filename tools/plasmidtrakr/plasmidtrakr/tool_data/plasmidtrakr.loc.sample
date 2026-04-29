@@ -1,0 +1,15 @@
+# This is a sample file that enables the PlasmidTrakr tool
+# to use a directory of bundled machine learning models.
+# The plasmidtrakr_models.loc file has this format (white space is a TAB):
+#   
+# value <tab> name <tab> path 
+# <unique_id>   <display_name>   <bundle_path>
+#
+# For example, if you have the biological source model (v1) stored in
+# /galaxy/tool-data/plasmidtrakr/rf_source_model_bundle.joblib,
+# then the entry would look like this:
+#
+# rf_source_v1    Biological Source (v1)    /galaxy/tool-data/plasmidtrakr/rf_source_model_bundle.joblib
+
+#rf_source_v1	Biological Source (v1)	/path/to/your/tool-data/rf_plasmid_model_bundle.joblib
+#rf_country_v1	Geographic Origin - Country (v1)	/path/to/your/tool-data/rf_country_model_bundle.joblib

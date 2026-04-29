@@ -1,0 +1,72 @@
+<tool id="plasmidtrakr" name="Predict Isolate Source" version="0.1.0">
+    <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
+
+    <requirements>
+        <requirement type="package" version="1.5.3">pandas</requirement>
+        <requirement type="package" version="1.2.2">scikit-learn</requirement>
+    </requirements>
+
+    <!-- FIXED: Added $ before __tool_directory__ -->
+    <version_command>
+        python '$__tool_directory__/predict_source.py' --version
+    </version_command>
+
+    <!-- FIXED: Added $ before __tool_directory__ -->
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/predict_source.py'
+            -i '$mash_input'
+            -b '$model_selection.path'
+            -t '$threshold'
+            -o '$prediction_output'
+    ]]></command>
+
+    <inputs>
+        <param name="mash_input" type="data" format="tabular" label="Mash Screen Output" help="The tabular output file from the Galaxy 'mash screen' tool."/>
+
+        <param name="model_selection" type="select" label="Select Prediction Model" help="Choose which trained model to use for prediction.">
+            <options from_data_table="plasmidtrakr_models">
+                <validator type="no_options" message="No prediction models are configured. Please contact your Galaxy administrator." />
+            </options>
+        </param>
+
+        <param name="threshold" type="float" value="0.95" label="Mash Identity Threshold" help="Filter plasmid hits below this identity. Must match the threshold used for model training."/>
+    </inputs>
+
+    <outputs>
+        <data name="prediction_output" format="tabular" label="Prediction for ${on_string} using ${model_selection.name}" />
+    </outputs>
+
+    <!-- FIXED: Cleaned up Markdown formatting in the help block (removed backslashes) -->
+    <help><![CDATA[
+**What it does**
+
+This tool takes the list of plasmid hits from the Galaxy **mash screen** tool and uses a pre-trained **machine learning model** to predict the original source of the isolate.
+
+**Workflow for Genome Assemblies**
+
+1.  Go to the **mash screen** tool in Galaxy.
+2.  In the **"Single or Paired-end reads"** dropdown, select **"Single"**.
+3.  For the **"Select fastq dataset"** input, provide your **genome assembly FASTA file**.
+4.  Run the `mash screen` job against the appropriate plasmid database.
+5.  Use the tabular output from that job as the input for **this prediction tool**.
+6.  Select the desired prediction model from the dropdown menu.
+7.  Execute to get your prediction.
+
+**Output**
+
+A tabular file containing the isolate ID, the predicted source, and a confidence score.
+    ]]></help>
+
+    <citations>
+        <citation type="bibtex">
+            @misc{strain_2026_plasmidtrakr,
+                author = {Strain, Errol},
+                title = {PlasmidTrakr: A tool for predicting isolate source from plasmid profiles},
+                year = {2026},
+                publisher = {GitHub},
+                journal = {GitHub repository},
+                howpublished = {\url{https://github.com/estrain/plasmidtrakr}}
+            }
+        </citation>
+    </citations>
+</tool>
