@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="Predict Isolate Source" version="0.1.5">
+<tool id="plasmidtrakr" name="Predict Isolate Source" version="0.1.6">
     <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
 
     <requirements>
@@ -27,7 +27,7 @@
     </inputs>
 
     <outputs>
-        <data name="prediction_output" format="tabular" label="Prediction for ${on_string} using ${model_selection.name}" />
+        <data name="prediction_output" format="tabular" label="Prediction for ${on_string}" />
     </outputs>
 
     <!-- FIXED: Cleaned up Markdown formatting in the help block (removed backslashes) -->
