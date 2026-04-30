@@ -1,29 +1,49 @@
-<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.1.12">
-    <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
-
+<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.2.0">
+    <description>Screens assemblies against a Mash database and predicts isolate source using a trained machine learning model</description>
+    
     <requirements>
+        <requirement type="package" version="2.3">mash</requirement>
         <requirement type="package" version="2.3.3">pandas</requirement>
         <requirement type="package" version="1.6.1">scikit-learn</requirement>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
+        ## 1. Symlink the Mash database from the tool data table
+        ln -s '$mash_database.fields.path' queries.msh &&
+        
+        ## 2. Run Mash Screen internally
+        mash screen
+            -w
+            -i $threshold
+            queries.msh
+            '$assembly_input'
+            > mash_results.tabular
+        &&
+        
+        ## 3. Run PlasmidTrakr prediction
         python $__tool_directory__/predict_source.py
-            -i $mash_input
-            -b $model_selection.fields.path
+            -i mash_results.tabular
+            -b '$model_selection.fields.path'
             -t $threshold
-            -o $prediction_output
+            -o '$prediction_output'
     ]]></command>
 
     <inputs>
-        <param name="mash_input" type="data" format="tabular" label="Mash Screen Output" help="The tabular output file from the Galaxy 'mash screen' tool."/>
-
+        <param name="assembly_input" type="data" format="fasta,fasta.gz,fastq,fastq.gz" label="Genome Assembly / Reads" help="The FASTA/FASTQ file containing the isolate sequence."/>
+        
+        <param name="mash_database" type="select" label="Select Mash Database" help="Choose the pre-computed Mash sketch database to screen against.">
+            <options from_data_table="mash_sketches">
+                <validator type="no_options" message="No Mash databases are configured. Please contact your Galaxy administrator." />
+            </options>
+        </param>
+        
         <param name="model_selection" type="select" label="Select Prediction Model" help="Choose which trained model to use for prediction.">
             <options from_data_table="plasmidtrakr_models">
                 <validator type="no_options" message="No prediction models are configured. Please contact your Galaxy administrator." />
             </options>
         </param>
-
-        <param name="threshold" type="float" value="0.95" label="Mash Identity Threshold" help="Filter plasmid hits below this identity. Must match the threshold used for model training."/>
+        
+        <param name="threshold" type="float" value="0.95" min="0.0" max="1.0" label="Mash Identity Threshold" help="Filter plasmid hits below this identity. Must match the threshold used for model training."/>
     </inputs>
 
     <outputs>
@@ -33,20 +53,15 @@
     <help><![CDATA[
 **What it does**
 
-This tool takes the list of plasmid hits from the Galaxy **mash screen** tool and uses a pre-trained **machine learning model** to predict the original source of the isolate.
+This tool performs a complete workflow in a single step: it screens a genome assembly or read set against a built-in plasmid database using **mash screen**, and then feeds those plasmid hits into a pre-trained **machine learning model** to predict the original source of the isolate.
 
-**Workflow for Genome Assemblies**
-
-1.  Go to the **mash screen** tool in Galaxy.
-2.  In the **"Single or Paired-end reads"** dropdown, select **"Single"**.
-3.  For the **"Select fastq dataset"** input, provide your **genome assembly FASTA file**.
-4.  Run the `mash screen` job against the appropriate plasmid database.
-5.  Use the tabular output from that job as the input for **this prediction tool**.
-6.  Select the desired prediction model from the dropdown menu.
-7.  Execute to get your prediction.
+**Workflow**
+1. Provide your **genome assembly (FASTA)** or raw reads.
+2. Select your **Mash database** from the server's configured list.
+3. Select the desired prediction model.
+4. Execute to screen and predict in one step.
 
 **Output**
-
 A tabular file containing the isolate ID, the predicted source, and a confidence score.
     ]]></help>
 
