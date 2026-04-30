@@ -1,9 +1,9 @@
-<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.1.11">
+<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.1.12">
     <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
 
     <requirements>
-        <requirement type="package" version="1.5.3">pandas</requirement>
-        <requirement type="package" version="1.2.2">scikit-learn</requirement>
+        <requirement type="package" version="2.3.3">pandas</requirement>
+        <requirement type="package" version="1.6.1">scikit-learn</requirement>
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
