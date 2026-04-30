@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.1.9">
+<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.1.10">
     <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
 
     <requirements>
@@ -9,7 +9,7 @@
     <command detect_errors="exit_code"><![CDATA[
         python $__tool_directory__/predict_source.py
             -i $mash_input
-            -b $model_selection.fields.path
+            -b $model_selection
             -t $threshold
             -o $prediction_output
     ]]></command>
@@ -19,6 +19,8 @@
 
         <param name="model_selection" type="select" label="Select Prediction Model" help="Choose which trained model to use for prediction.">
             <options from_data_table="plasmidtrakr_models">
+                <column name="value" index="0"/>
+                <column name="name" index="1"/>
                 <validator type="no_options" message="No prediction models are configured. Please contact your Galaxy administrator." />
             </options>
         </param>
