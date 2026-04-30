@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.2.2">
+<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.2.3">
     <description>Screens assemblies against a Mash database and predicts isolate source using a trained machine learning model</description>
     
     <requirements>
@@ -9,7 +9,7 @@
 
     <command detect_errors="exit_code"><![CDATA[
         ## 1. Setup names and database
-        #set $input_name = $assembly_input.element_identifier.replace(" ", "_")
+        #set $input_name = $assembly_input.element_identifier.replace(" ", "_").replace(".", "_")
         ln -s '$mash_database.fields.path' queries.msh &&
 
         ## 2. Run Mash Screen
@@ -18,22 +18,20 @@
             -i $threshold
             queries.msh
             '$assembly_input'
-            > mash_results.tabular
+            > '${input_name}_mash.tabular'
         &&
 
         ## 3. Conditional Logic: Check if Mash produced hits
-        ## [ -s file ] checks if file exists and has size > 0
-        if [ -s mash_results.tabular ]; then
-            ## Run the prediction script only if there is data
-                python $__tool_directory__/predict_source.py
-                    -i mash_results.tabular
-                    -b '$model_selection.fields.path'
-                    -t $threshold
-                    -o '$prediction_output';
+        if [ \$(wc -l < '${input_name}_mash.tabular') -ge 2 ]; then
+            python $__tool_directory__/predict_source.py
+                -i '${input_name}_mash.tabular'
+                -b '$model_selection.fields.path'
+                -t $threshold
+                -o '$prediction_output';
         
             ## Optional: If the script ran but produced no results (e.g. filtered out)
             ## ensure we still provide the "No Prediction" fallback
-            if [ \$(wc -l < '$prediction_output') -le 1 ]; then
+            if [ ! -s '$prediction_output' ] || [ \$(wc -l < '$prediction_output') -le 1 ]; then
                     echo -e "Run\tPredicted_Source\tConfidence_Score" > '$prediction_output';
                     echo -e "${input_name}\tNo Prediction\t0.0" >> '$prediction_output';
             fi
