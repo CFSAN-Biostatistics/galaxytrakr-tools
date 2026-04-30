@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.1.8">
+<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.1.9">
     <description>Predicts isolate source from plasmid profiles using a trained machine learning model</description>
 
     <requirements>
@@ -8,10 +8,10 @@
 
     <command detect_errors="exit_code"><![CDATA[
         python $__tool_directory__/predict_source.py
-            -i '$mash_input'
-            -b '$model_selection.path'
-            -t '$threshold'
-            -o '$prediction_output'
+            -i $mash_input
+            -b $model_selection.fields.path
+            -t $threshold
+            -o $prediction_output
     ]]></command>
 
     <inputs>
@@ -30,7 +30,6 @@
         <data name="prediction_output" format="tabular" label="Prediction for ${on_string}" />
     </outputs>
 
-    <!-- FIXED: Cleaned up Markdown formatting in the help block (removed backslashes) -->
     <help><![CDATA[
 **What it does**
 
