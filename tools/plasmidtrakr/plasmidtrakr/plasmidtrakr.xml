@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.2.0">
+<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.2.1">
     <description>Screens assemblies against a Mash database and predicts isolate source using a trained machine learning model</description>
     
     <requirements>
@@ -8,25 +8,31 @@
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
-        ## 1. Symlink the Mash database from the tool data table
+        ## 1. Create a sanitized variable for the input name (removes spaces/special chars for the shell)
+        #set $input_name = $assembly_input.element_identifier.replace(" ", "_")
+
+        ## 2. Symlink the Mash database
         ln -s '$mash_database.fields.path' queries.msh &&
-        
-        ## 2. Run Mash Screen internally
+
+        ## 3. Run Mash Screen
+        ## We redirect the output to a file named after the original input
         mash screen
             -w
             -i $threshold
             queries.msh
             '$assembly_input'
-            > mash_results.tabular
+         > '${input_name}.tabular'
         &&
-        
-        ## 3. Run PlasmidTrakr prediction
+
+        ## 4. Run PlasmidTrakr prediction
+        ## We pass the newly named file to the python script
         python $__tool_directory__/predict_source.py
-            -i mash_results.tabular
+            -i '${input_name}.tabular'
             -b '$model_selection.fields.path'
             -t $threshold
             -o '$prediction_output'
     ]]></command>
+
 
     <inputs>
         <param name="assembly_input" type="data" format="fasta,fasta.gz,fastq,fastq.gz" label="Genome Assembly / Reads" help="The FASTA/FASTQ file containing the isolate sequence."/>
