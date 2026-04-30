@@ -1,4 +1,4 @@
-<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.2.1">
+<tool id="plasmidtrakr" name="PlasmidTrakr" version="0.2.2">
     <description>Screens assemblies against a Mash database and predicts isolate source using a trained machine learning model</description>
     
     <requirements>
@@ -8,31 +8,41 @@
     </requirements>
 
     <command detect_errors="exit_code"><![CDATA[
-        ## 1. Create a sanitized variable for the input name (removes spaces/special chars for the shell)
+        ## 1. Setup names and database
         #set $input_name = $assembly_input.element_identifier.replace(" ", "_")
-
-        ## 2. Symlink the Mash database
         ln -s '$mash_database.fields.path' queries.msh &&
 
-        ## 3. Run Mash Screen
-        ## We redirect the output to a file named after the original input
+        ## 2. Run Mash Screen
         mash screen
             -w
             -i $threshold
             queries.msh
             '$assembly_input'
-         > '${input_name}.tabular'
+            > mash_results.tabular
         &&
 
-        ## 4. Run PlasmidTrakr prediction
-        ## We pass the newly named file to the python script
-        python $__tool_directory__/predict_source.py
-            -i '${input_name}.tabular'
-            -b '$model_selection.fields.path'
-            -t $threshold
-            -o '$prediction_output'
+        ## 3. Conditional Logic: Check if Mash produced hits
+        ## [ -s file ] checks if file exists and has size > 0
+        if [ -s mash_results.tabular ]; then
+            ## Run the prediction script only if there is data
+                python $__tool_directory__/predict_source.py
+                    -i mash_results.tabular
+                    -b '$model_selection.fields.path'
+                    -t $threshold
+                    -o '$prediction_output';
+        
+            ## Optional: If the script ran but produced no results (e.g. filtered out)
+            ## ensure we still provide the "No Prediction" fallback
+            if [ \$(wc -l < '$prediction_output') -le 1 ]; then
+                    echo -e "Run\tPredicted_Source\tConfidence_Score" > '$prediction_output';
+                    echo -e "${input_name}\tNo Prediction\t0.0" >> '$prediction_output';
+            fi
+        else
+            ## Skip Python and create the fallback file immediately
+            echo -e "Run\tPredicted_Source\tConfidence_Score" > '$prediction_output';
+            echo -e "${input_name}\tNo Prediction\t0.0" >> '$prediction_output';
+        fi
     ]]></command>
-
 
     <inputs>
         <param name="assembly_input" type="data" format="fasta,fasta.gz,fastq,fastq.gz" label="Genome Assembly / Reads" help="The FASTA/FASTQ file containing the isolate sequence."/>
