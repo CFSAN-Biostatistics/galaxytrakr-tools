@@ -1,0 +1,37 @@
+<tool id="srr2sam" name="SRR to BioSample" version="1.0.0">
+	<description>Retrieve BioSample metadata from SRR accessions. Traverses NCBI Entrez from SRA to BioSample.</description>
+    <requirements>
+        <container type="docker">docker.io/crashfrog/bp2srr-galaxy:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python '$__tool_directory__/srr2sam.py' '$input1'
+    ]]></command>
+    <inputs>
+        <param type="data" format="txt" name="input1" label="SRR Accessions File" help="Text file with one SRR accession per line" />
+    </inputs>
+    <outputs>
+        <data format="tabular" name="output" from_work_dir="output.tsv" label="BioSample Metadata from ${input1.name}" />
+    </outputs>
+    <tests>
+    	<test>
+    		<param name="input1" value="accessions.txt" />
+    		<output name="output" file="biosample_metadata.tsv" />
+    	</test>
+    </tests>
+    <help><![CDATA[
+        Retrieve BioSample metadata from a list of SRR accessions. For each SRR accession in the input file, the tool:
+
+        1. Queries NCBI SRA database to find the SRA UID
+        2. Links from SRA to BioSample using Entrez elink
+        3. Retrieves BioSample metadata including organism, taxonomic ID, sample attributes, and package type
+        4. Outputs a tabular file with SRR accession as the first column, followed by all BioSample metadata fields
+
+        **Input:** Text file with one SRR accession per line (e.g., output from Bioproject to SRR tool)
+
+        **Output:** Tabular file with BioSample metadata. Each row corresponds to one input SRR accession.
+
+        **Note:** If a BioSample cannot be found for an SRR accession, the row will contain "NOT_FOUND" in the biosample_accession column.
+    ]]></help>
+    <citations>
+    </citations>
+</tool>
