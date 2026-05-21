@@ -1,0 +1,6 @@
+categories: ['Tools']
+description: Give a Bioproject accession, get a list of associated SRR accessions
+name: bioproject2srr
+owner: jpayne
+ignore:
+- CLAUDE.md

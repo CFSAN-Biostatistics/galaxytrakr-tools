@@ -1,0 +1,31 @@
+<tool id="bio2srr" name="Bioproject to SRR" version="3.0.1">
+	<description>Retrieve SRR accessions and sample metadata from BioProject. Recursively follows links to subprojects.</description>
+    <requirements>
+        <container type="docker">docker.io/crashfrog/bp2srr-galaxy:latest</container>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python /bio2srr.py "$input1"
+    ]]></command>
+    <inputs>
+        <param type="text" name="input1" label="BioProject" />
+    </inputs>
+    <outputs>
+    	<data format="txt" name="output" from_work_dir="accessions.txt" label="${input1} Accessions" />
+        <data format="tabular" name="metadata" from_work_dir="metadata.tsv" label="${input1} Metadata" />
+    </outputs>
+    <tests>
+    	<test>
+    		<param name="input1" value="PRJNA681235" />
+    		<output name="output" file="accessions.txt" />
+            <output name="metadata" file="metadata.tsv" />
+    	</test>
+        <test expect_failure="1">
+            <param name="input1" value="NOTHING" />
+        </test>
+    </tests>
+    <help><![CDATA[
+        Retrieve SRR accessions and sample metadata from a BioProject, including subprojects. It's a JOIN, so if a sample is associated with multiple SRA runs, then each run has a copy of the sample's metadata.
+    ]]></help>
+    <citations>
+    </citations>
+</tool>
