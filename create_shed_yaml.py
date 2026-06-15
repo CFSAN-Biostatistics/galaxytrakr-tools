@@ -5,7 +5,6 @@
 # galaxy tool repository (opentrakr.org). These can
 # then be used with planemo to push tools to new repos
 # Errol Strain (estrain@gmail.com)
-#
 
 import os
 import re
