@@ -1,4 +1,4 @@
-<tool id="data_manager_amrfinderplus" name="AMRFinderPlus Data Manger" tool_type="manage_data" version="4.2.5" profile="20.03">
+<tool id="data_manager_amrfinderplus" name="AMRFinderPlus Data Manger" tool_type="manage_data" version="4.2.7" profile="20.03">
     <requirements>
         <requirement type="package" version="4.2.7">ncbi-amrfinderplus</requirement>
         <requirement type="package" version="3.10.6">python</requirement>
