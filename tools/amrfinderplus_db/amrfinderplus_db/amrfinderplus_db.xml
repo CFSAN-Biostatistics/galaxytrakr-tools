@@ -1,7 +1,6 @@
 <tool id="amrfinderplus_db" name="AMRFinderPlus" version="@TOOL_VERSION@+galaxy@VERSION_SUFFIX@" profile="@PROFILE@">
     <description>
         NCBI Antimicrobial Resistance Gene Finder 
-        
     </description>
     <macros>
         <import>macro.xml</import>
