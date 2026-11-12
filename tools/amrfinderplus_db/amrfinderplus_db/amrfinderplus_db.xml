@@ -254,7 +254,6 @@
                 <param name="report_all_equal" value="true"/>
                 <param name="print_node" value="true"/>
                 <param name="name" value="test_2"/>
-                <param name="log" value="true"/>
             </section>
             <output name="amrfinderplus_report" ftype="tabular">
                 <assert_contents>
