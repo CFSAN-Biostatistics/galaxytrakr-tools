@@ -79,10 +79,11 @@
 
         ]]></command>
     <inputs>
-
         <section name="input_option" title="Input/Output options" expanded="true">
             <param name="amrfinder_db_select" type="select" label="The amrfinderplus database">
                 <options from_data_table="amrfinderplus_versioned_database">
+                    <filter type="sort_by" column="db_version"
+                        reverse_sort_order="true"/>
                 </options>
             </param>
             <conditional name="input_mode">
